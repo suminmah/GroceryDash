@@ -3,6 +3,8 @@
 $pageTitle = 'Checkout — FreshCart';
 require __DIR__ . '/../layouts/header.php';
 $error = flash('checkout_error');
+$totals = $totals ?? ['subtotal' => 0, 'delivery_fee' => 0, 'total' => 0];
+$selectedSlotId = $_POST['delivery_slot_id'] ?? null;
 ?>
 
 <div class="container" style="padding:2rem 0 4rem">
@@ -47,24 +49,34 @@ $error = flash('checkout_error');
       <!-- Delivery slot -->
       <div class="checkout-section">
         <h3>🕐 Choose Delivery Slot</h3>
-        <div class="slot-grid">
-          <?php
-          $slots = [
-            '8 AM – 12 PM'  => 'Morning',
-            '12 PM – 4 PM'  => 'Afternoon',
-            '4 PM – 8 PM'   => 'Evening',
-            'Express 30 min'=> 'Express (+Rs. 20)',
-          ];
-          foreach ($slots as $val => $label):
-          ?>
-            <label class="slot-option">
-              <input type="radio" name="delivery_slot" value="<?= e($val) ?>"
-                <?= $val === '4 PM – 8 PM' ? 'checked' : '' ?>>
-              <span><?= e($label) ?></span>
-              <small><?= e($val) ?></small>
-            </label>
-          <?php endforeach; ?>
-        </div>
+        <?php if (empty($slots)): ?>
+            <div class="alert alert-warning">No delivery slots available. Please try again later.</div>
+        <?php else: ?>
+            <div class="slot-grid">
+                <?php foreach ($slots as $slot): ?>
+                    <div class="slot-item">
+                        <div class="form-check border rounded p-3 <?= ($selectedSlotId == $slot['slot_id']) ? 'border-success bg-success bg-opacity-10' : '' ?>">
+                            <input class="form-check-input" type="radio" name="delivery_slot_id" 
+                                  value="<?= $slot['slot_id'] ?>" 
+                                  id="slot_<?= $slot['slot_id'] ?>"
+                                  <?= ($selectedSlotId == $slot['slot_id']) ? 'checked' : '' ?>
+                                  required>
+                            <label class="form-check-label w-100" for="slot_<?= $slot['slot_id'] ?>">
+                                <strong><?= date('l, M j', strtotime($slot['slot_date'])) ?></strong><br>
+                                <?= date('g:i A', strtotime($slot['start_time'])) ?> – 
+                                <?= date('g:i A', strtotime($slot['end_time'])) ?>
+                                <small class="text-muted d-block">
+                                    <?= $slot['available'] ?? ($slot['capacity'] - $slot['booked']) ?> slots available
+                                </small>
+                            </label>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <?php if (flash('slot_error')): ?>
+            <div class="alert alert-danger mt-2"><?= flash('slot_error') ?></div>
+        <?php endif; ?>
       </div>
 
       <!-- Payment -->
@@ -93,7 +105,7 @@ $error = flash('checkout_error');
     <div class="checkout-right">
       <div class="cart-summary sticky-summary">
         <h3>Order Summary</h3>
-        <?php foreach ($cartItems as $item):
+        <?php foreach ($cartItems ?? [] as $item):
           $unitPrice = $item['sale_price'] ?? $item['price'];
         ?>
           <div class="summary-item">

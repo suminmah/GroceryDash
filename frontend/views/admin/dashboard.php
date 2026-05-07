@@ -2,7 +2,7 @@
 // frontend/views/admin/dashboard.php
 ?>
 
-    <!-- Main Content -->
+<!-- Main Content -->
     <main class="admin-main">
         <h1>Dashboard</h1>
         <div class="stats-grid">
@@ -33,7 +33,7 @@
                     <tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr>
                 </thead>
                 <tbody>
-                <?php foreach ($recentOrders as $order): ?>
+                <?php foreach ($recentOrders as $order): ?> 
                     <tr>
                         <td><?= $order['order_id'] ?></td>
                         <td><?= htmlspecialchars($order['customer_name']) ?></td>
@@ -45,5 +45,7 @@
                 </tbody>
             </table>
         </div>
+    
+
         <?php endif; ?>
     </main>

@@ -1,12 +1,10 @@
 <?php
 // ============================================================
 //  backend/models/OrderModel.php
-//  Aligned to ACTUAL DB columns:
-//    users        → id, name, email, password, role
-//    Orders       → order_id, user_id, total_amount, status,
-//                   delivery_slot_id, order_date
-//    Order_Items  → item_id, order_id, product_id, quantity, unit_price
-//    Delivery_Slots → slot_id, slot_date, start_time, end_time, max_capacity
+//  Aligned to ACTUAL orders table columns:
+//    id, user_id, order_number, status, subtotal, delivery_fee,
+//    discount, total, payment_method, payment_status,
+//    delivery_address, delivery_slot_id, notes, created_at
 // ============================================================
 
 require_once __DIR__ . '/../config/database.php';
@@ -18,8 +16,8 @@ class OrderModel
     private InventoryModel $inventory;
 
     private const VALID_STATUSES = [
-        'Pending', 'Confirmed', 'Packed',
-        'Out for Delivery', 'Delivered', 'Cancelled',
+        'pending', 'confirmed', 'packed',
+        'out_for_delivery', 'delivered', 'cancelled',
     ];
 
     public function __construct()
@@ -33,27 +31,36 @@ class OrderModel
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Fetch one complete order with items, slot info and customer name.
+     * Fetch one complete order by its primary key (id).
+     * Includes all order fields + customer info + delivery slot.
      * Used by: order detail, confirmation page, tracking page
      */
     public function findById(int $orderId): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT  o.order_id,
+            "SELECT  o.id,
                      o.user_id,
-                     o.total_amount,
+                     o.order_number,
                      o.status,
-                     o.order_date,
+                     o.subtotal,
+                     o.delivery_fee,
+                     o.discount,
+                     o.total,
+                     o.payment_method,
+                     o.payment_status,
+                     o.delivery_address,
                      o.delivery_slot_id,
+                     o.notes,
+                     o.created_at,
                      ds.slot_date,
                      ds.start_time,
                      ds.end_time,
-                     u.name   AS customer_name,
-                     u.email  AS customer_email
-             FROM    Orders         o
-             JOIN    Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
+                     u.name  AS customer_name,
+                     u.email AS customer_email
+             FROM    orders         o
+             LEFT    JOIN Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
              JOIN    users          u  ON u.id       = o.user_id
-             WHERE   o.order_id = :id
+             WHERE   o.id = :id
              LIMIT   1"
         );
         $stmt->execute([':id' => $orderId]);
@@ -61,6 +68,46 @@ class OrderModel
         if (!$order) return null;
 
         $order['items'] = $this->getOrderItems($orderId);
+        return $order;
+    }
+
+    /**
+     * Fetch one complete order by its order_number string.
+     * Used by: order confirmation redirect, tracking by order number
+     */
+    public function findByOrderNumber(string $orderNumber): ?array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT  o.id,
+                     o.user_id,
+                     o.order_number,
+                     o.status,
+                     o.subtotal,
+                     o.delivery_fee,
+                     o.discount,
+                     o.total,
+                     o.payment_method,
+                     o.payment_status,
+                     o.delivery_address,
+                     o.delivery_slot_id,
+                     o.notes,
+                     o.created_at,
+                     ds.slot_date,
+                     ds.start_time,
+                     ds.end_time,
+                     u.name  AS customer_name,
+                     u.email AS customer_email
+             FROM    orders         o
+             LEFT    JOIN Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
+             JOIN    users          u  ON u.id       = o.user_id
+             WHERE   o.order_number = :num
+             LIMIT   1"
+        );
+        $stmt->execute([':num' => $orderNumber]);
+        $order = $stmt->fetch();
+        if (!$order) return null;
+
+        $order['items'] = $this->getOrderItems((int) $order['id']);
         return $order;
     }
 
@@ -75,33 +122,45 @@ class OrderModel
     public function getByUser(int $userId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT  o.order_id,
-                     o.total_amount,
+            "SELECT  o.id,
+                     o.order_number,
                      o.status,
-                     o.order_date,
+                     o.subtotal,
+                     o.delivery_fee,
+                     o.discount,
+                     o.total,
+                     o.payment_method,
+                     o.payment_status,
+                     o.created_at,
                      ds.slot_date,
                      ds.start_time,
                      ds.end_time,
-                     COUNT(oi.item_id) AS item_count
-             FROM    Orders         o
-             JOIN    Delivery_Slots ds ON ds.slot_id  = o.delivery_slot_id
-             JOIN    Order_Items    oi ON oi.order_id = o.order_id
+                     COUNT(oi.id) AS item_count
+             FROM    orders         o
+             LEFT    JOIN Delivery_Slots ds ON ds.slot_id  = o.delivery_slot_id
+             LEFT    JOIN Order_Items    oi ON oi.order_id = o.id
              WHERE   o.user_id = :uid
-             GROUP   BY o.order_id,
-                        o.total_amount,
+             GROUP   BY o.id,
+                        o.order_number,
                         o.status,
-                        o.order_date,
+                        o.subtotal,
+                        o.delivery_fee,
+                        o.discount,
+                        o.total,
+                        o.payment_method,
+                        o.payment_status,
+                        o.created_at,
                         ds.slot_date,
                         ds.start_time,
                         ds.end_time
-             ORDER   BY o.order_date DESC"
+             ORDER   BY o.created_at DESC"
         );
         $stmt->execute([':uid' => $userId]);
         return $stmt->fetchAll();
     }
 
     /**
-     * All orders — admin list with optional status filter and pagination.
+     * All orders — admin list, with optional status filter and pagination.
      * Used by: /admin/orders
      */
     public function getAll(string $status = '', int $page = 1, int $perPage = 20): array
@@ -117,17 +176,23 @@ class OrderModel
 
         $stmt = $this->db->prepare(
             "SELECT  o.id,
-                     o.total,
+                     o.order_number,
                      o.status,
+                     o.subtotal,
+                     o.delivery_fee,
+                     o.discount,
+                     o.total,
+                     o.payment_method,
+                     o.payment_status,
                      o.created_at,
-                     u.name   AS customer_name,
-                     u.email  AS customer_email,
+                     u.name  AS customer_name,
+                     u.email AS customer_email,
                      ds.slot_date,
                      ds.start_time,
                      ds.end_time
-             FROM    Orders         o
-             JOIN    users          u  ON u.id      = o.user_id
-             JOIN    Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
+             FROM    orders         o
+             JOIN    users          u  ON u.id       = o.user_id
+             LEFT    JOIN Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
              WHERE   $where
              ORDER   BY o.created_at DESC
              LIMIT   :lim OFFSET :offset"
@@ -148,11 +213,11 @@ class OrderModel
     {
         if ($status !== '') {
             $stmt = $this->db->prepare(
-                "SELECT COUNT(*) FROM Orders WHERE status = :s"
+                "SELECT COUNT(*) FROM orders WHERE status = :s"
             );
             $stmt->execute([':s' => $status]);
         } else {
-            $stmt = $this->db->query("SELECT COUNT(*) FROM Orders");
+            $stmt = $this->db->query("SELECT COUNT(*) FROM orders");
         }
         return (int) $stmt->fetchColumn();
     }
@@ -164,16 +229,14 @@ class OrderModel
     public function getOrderItems(int $orderId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT  oi.item_id,
+            "SELECT  oi.id,
                      oi.product_id,
                      oi.quantity,
-                     oi.unit_price,
-                     oi.quantity * oi.unit_price        AS line_total,
-                     COALESCE(p.name, 'Deleted product') AS product_name,
-                     p.sku,
-                     p.is_perishable
+                     oi.price,
+                     oi.quantity * oi.price         AS line_total,
+                     COALESCE(oi.name, p.name, 'Deleted product') AS name
              FROM    Order_Items oi
-             LEFT    JOIN Products p ON p.product_id = oi.product_id
+             LEFT    JOIN Products p ON p.id = oi.product_id
              WHERE   oi.order_id = :oid"
         );
         $stmt->execute([':oid' => $orderId]);
@@ -191,14 +254,14 @@ class OrderModel
     public function getDailyRevenue(string $from, string $to): array
     {
         $stmt = $this->db->prepare(
-            "SELECT DATE(created_at) AS order_date,
-                    COUNT(*) AS order_count,
-                    SUM(total) AS revenue
-            FROM   orders
-            WHERE  DATE(created_at) BETWEEN :from AND :to
-            AND  status != 'cancelled'
-            GROUP  BY DATE(created_at)
-            ORDER  BY order_date ASC"
+            "SELECT  DATE(created_at) AS order_date,
+                     COUNT(*)         AS order_count,
+                     SUM(total)       AS revenue
+             FROM    orders
+             WHERE   DATE(created_at) BETWEEN :from AND :to
+             AND     status != 'cancelled'
+             GROUP   BY DATE(created_at)
+             ORDER   BY order_date ASC"
         );
         $stmt->execute([':from' => $from, ':to' => $to]);
         return $stmt->fetchAll();
@@ -212,16 +275,19 @@ class OrderModel
     {
         $stmt = $this->db->prepare(
             "SELECT  oi.product_id,
-                    p.name AS product_name,
-                    SUM(oi.quantity) AS units_sold,
-                    SUM(oi.quantity * oi.price) AS revenue
-            FROM    order_items oi
-            JOIN    products p ON p.id = oi.product_id
-            JOIN    orders o ON o.id = oi.order_id
-            WHERE   o.status != 'cancelled'
-            GROUP   BY oi.product_id
-            ORDER   BY units_sold DESC
-            LIMIT   :lim"
+                     p.name                           AS product_name,
+                     p.price,
+                     SUM(oi.quantity)                 AS units_sold,
+                     SUM(oi.quantity * oi.price) AS revenue
+             FROM    Order_Items oi
+             JOIN    Products    p ON p.id = oi.product_id
+             JOIN    orders      o ON o.id         = oi.order_id
+             WHERE   o.status != 'cancelled'
+             GROUP   BY oi.product_id,
+                        p.name,
+                        p.price
+             ORDER   BY units_sold DESC
+             LIMIT   :lim"
         );
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -235,15 +301,17 @@ class OrderModel
     {
         return $this->db->query(
             "SELECT
-                COUNT(*)                                        AS total_orders,
-                COALESCE(SUM(total), 0)                  AS total_revenue,
-                SUM(CASE WHEN status = 'Pending'   THEN 1 ELSE 0 END) AS pending_count,
-                SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) AS delivered_count,
-                SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
-                COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE()
-                                  AND status != 'Cancelled'
-                             THEN total END), 0)         AS today_revenue
-             FROM Orders"
+                COUNT(*)                                               AS total_orders,
+                COALESCE(SUM(total), 0)                                AS total_revenue,
+                SUM(CASE WHEN status = 'pending'   THEN 1 ELSE 0 END) AS pending_count,
+                SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered_count,
+                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
+                COALESCE(SUM(
+                    CASE WHEN DATE(created_at) = CURDATE()
+                         AND  status != 'cancelled'
+                    THEN total END
+                ), 0) AS today_revenue
+             FROM orders"
         )->fetch();
     }
 
@@ -253,66 +321,100 @@ class OrderModel
 
     /**
      * Place a new order.
-     * Validates stock, inserts Orders + Order_Items, deducts inventory.
-     * Entire operation runs in one DB transaction.
+     * Inserts into orders + Order_Items, deducts inventory.
+     * Entire operation is wrapped in a DB transaction.
      *
-     * @param  array{user_id:int, delivery_slot_id:int, total_amount:float} $orderData
-     * @param  array[] $items  [{product_id, quantity, unit_price}, …]
-     * @return int  New order_id
-     * @throws RuntimeException on stock shortage or DB failure
+     * @param array{
+     *   user_id: int,
+     *   order_number: string,
+     *   subtotal: float,
+     *   delivery_fee: float,
+     *   discount: float,
+     *   total: float,
+     *   payment_method: string,
+     *   delivery_address: string,
+     *   delivery_slot_id: int,
+     *   notes: string
+     * } $data
+     * @param array[] $items  [{product_id, quantity, unit_price}, …]
+     * @return int  New order id
      */
-    public function create(array $orderData, array $items): int
-    {
-        // Pre-flight stock check
+    public function create(array $data, array $items): int
+{
+    $this->db->beginTransaction();
+    try {
+        // 1. Generate Order Number
+        $datePrefix = date('Ymd');
+        $stmt = $this->db->prepare(
+            "SELECT order_number 
+            FROM orders 
+            WHERE order_number LIKE ? ORDER BY id DESC LIMIT 1"
+        );
+        $stmt->execute(["ORD-{$datePrefix}-%"]);
+        $last = $stmt->fetchColumn();
+        $parts = explode('-', $last);
+        $newSeq = $last ? str_pad((int)end($parts) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+        $orderNumber = "ORD-{$datePrefix}-{$newSeq}";
+
+        // 2. Insert Main Order
+        // Note: Using 'id' from your image_df335f.png as the PK
+        $sqlOrder = "INSERT INTO orders 
+            (order_number, user_id, subtotal, delivery_fee, discount, total, status, payment_method, payment_status, delivery_address, delivery_slot_id, notes) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        $stmtOrder = $this->db->prepare($sqlOrder);
+        $stmtOrder->execute([
+            $orderNumber,
+            $data['user_id'] ? (int)$data['user_id'] : null,
+            (float)($data['subtotal'] ?? 0),
+            (float)($data['delivery_fee'] ?? 0),
+            (float)($data['discount'] ?? 0),
+            (float)($data['total'] ?? 0),
+            'pending',
+            $data['payment_method'] ?? 'cod',
+            'pending',
+            $data['delivery_address'],
+            (int)$data['delivery_slot_id'],
+            $data['notes'] ?? ''
+        ]);
+
+        // 3. GET THE ID IMMEDIATELY
+        $orderId = (int)$this->db->lastInsertId();
+        
+        if ($orderId <= 0) {
+            throw new RuntimeException("Failed to get Order ID.");
+        }
+
+        // 4. Insert Items (Matching your order_items structure)
+        $sqlItems = "INSERT INTO order_items (order_id, product_id, name, quantity, price) VALUES (?, ?, ?, ?, ?)";
+        $stmtItems = $this->db->prepare($sqlItems);
+
         foreach ($items as $item) {
-            if (!$this->inventory->hasSufficientStock(
-                (int) $item['product_id'],
-                (int) $item['quantity']
-            )) {
-                throw new RuntimeException(
-                    "Insufficient stock for product ID {$item['product_id']}"
-                );
-            }
-        }
-
-        $this->db->beginTransaction();
-        try {
-            $stmt = $this->db->prepare(
-                "INSERT INTO Orders (user_id, total_amount, status, delivery_slot_id)
-                 VALUES (:uid, :amount, 'Pending', :slot)"
-            );
-            $stmt->execute([
-                ':uid'    => (int)   $orderData['user_id'],
-                ':amount' => (float) $orderData['total_amount'],
-                ':slot'   => (int)   $orderData['delivery_slot_id'],
+            $itemName = !empty($item['name']) ? $item['name'] : "Item #{$item['product_id']}";
+            $stmtItems->execute([
+                $orderId,
+                (int)$item['product_id'],
+                $itemName,
+                (int)$item['quantity'],
+                (float)$item['price']
             ]);
-            $orderId = (int) $this->db->lastInsertId();
 
-            $itemStmt = $this->db->prepare(
-                "INSERT INTO Order_Items (order_id, product_id, quantity, unit_price)
-                 VALUES (:oid, :pid, :qty, :price)"
-            );
-            foreach ($items as $item) {
-                $itemStmt->execute([
-                    ':oid'   => $orderId,
-                    ':pid'   => (int)   $item['product_id'],
-                    ':qty'   => (int)   $item['quantity'],
-                    ':price' => (float) $item['unit_price'],
-                ]);
-                $this->inventory->deductStock(
-                    (int) $item['product_id'],
-                    (int) $item['quantity']
-                );
-            }
-
-            $this->db->commit();
-            return $orderId;
-
-        } catch (Throwable $e) {
-            $this->db->rollBack();
-            throw new RuntimeException('Order creation failed: ' . $e->getMessage(), 0, $e);
+            // 5. Update Stock in products table
+            $updateStock = $this->db->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
+            $updateStock->execute([(int)$item['quantity'], (int)$item['product_id']]);
         }
+
+        $this->db->commit();
+        return $orderId;
+
+    } catch (Throwable $e) {
+        if ($this->db->inTransaction()) {
+            $this->db->rollBack();
+        }
+        error_log("Order Error: " . $e->getMessage());
+        throw $e;
     }
+}
 
     // ─────────────────────────────────────────────────────────
     //  WRITE — status updates
@@ -328,7 +430,7 @@ class OrderModel
             throw new InvalidArgumentException("Invalid order status: $status");
         }
         $stmt = $this->db->prepare(
-            "UPDATE Orders SET status = :status WHERE order_id = :id"
+            "UPDATE orders SET status = :status WHERE id = :id"
         );
         return $stmt->execute([':status' => $status, ':id' => $orderId]);
     }
@@ -336,12 +438,11 @@ class OrderModel
     /**
      * Cancel an order and restore stock for all its items.
      * Runs inside a transaction.
-     * Used by: customer cancel, admin cancel
      */
     public function cancel(int $orderId): bool
     {
         $order = $this->findById($orderId);
-        if (!$order || $order['status'] === 'Cancelled') {
+        if (!$order || $order['status'] === 'cancelled') {
             return false;
         }
 
@@ -356,7 +457,7 @@ class OrderModel
                 }
             }
             $this->db->prepare(
-                "UPDATE Orders SET status = 'Cancelled' WHERE order_id = :id"
+                "UPDATE orders SET status = 'cancelled' WHERE id = :id"
             )->execute([':id' => $orderId]);
 
             $this->db->commit();

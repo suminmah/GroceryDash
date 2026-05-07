@@ -30,7 +30,7 @@ class InventoryModel
     public function findByProductId(int $productId): ?array
     {
         $stmt = $this->db->prepare(
-            "SELECT inventory_id, product_id, quantity As stock_qty
+            "SELECT inventory_id, product_id, quantity, last_updated
              FROM   Inventory
              WHERE  product_id = :pid
              LIMIT  1"
@@ -47,7 +47,7 @@ class InventoryModel
     public function getStockQty(int $productId): int
     {
         $stmt = $this->db->prepare(
-            "SELECT stock_qty FROM Inventory WHERE product_id = :pid LIMIT 1"
+            "SELECT quantity FROM Inventory WHERE product_id = :pid LIMIT 1"
         );
         $stmt->execute([':pid' => $productId]);
         return (int) ($stmt->fetchColumn() ?? 0);
@@ -62,7 +62,12 @@ class InventoryModel
      */
     public function hasSufficientStock(int $productId, int $required): bool
     {
-        return $this->getStockQty($productId) >= $required;
+       $stmt = $this->db->prepare(
+        "SELECT quantity FROM inventory WHERE product_id = :pid"
+        );
+        $stmt->execute([':pid' => $productId]);
+        $current = (int) $stmt->fetchColumn();
+        return $current >= $required;
     }
 
     /**
@@ -72,7 +77,7 @@ class InventoryModel
     public function isAvailable(int $productId): bool
     {
         $stmt = $this->db->prepare(
-            "SELECT stock_qty > buffer_threshold AS available
+            "SELECT quantity > buffer_threshold AS available
              FROM   Inventory
              WHERE  product_id = :pid
              LIMIT  1"
@@ -94,18 +99,10 @@ class InventoryModel
     public function getAll(): array
     {
         return $this->db->query(
-            "SELECT  i.inventory_id,
-                     i.product_id,
-                     i.stock_qty,
-                     i.buffer_threshold,
-                     p.name  AS product_name,
-                     p.sku,
-                     p.is_perishable,
-                     c.name  AS category_name
-             FROM    Inventory  i
-             JOIN    Products   p ON p.product_id   = i.product_id
-             JOIN    Categories c ON c.category_id  = p.category_id
-             ORDER   BY p.name ASC"
+            "SELECT i.*, p.name AS product_name
+            FROM inventory i
+            JOIN products p ON p.id = i.product_id
+            ORDER BY p.name ASC"
         )->fetchAll();
     }
 
@@ -118,7 +115,7 @@ class InventoryModel
     public function getLowStockItems(int $threshold = 5): array
     {
         $stmt = $this->db->prepare(
-            "SELECT p.id, p.name, i.quantity
+            "SELECT p.id, p.name, i.quantity, i.last_updated
             FROM products p
             INNER JOIN inventory i ON i.product_id = p.id
             WHERE i.quantity <= :threshold
@@ -132,12 +129,16 @@ class InventoryModel
      * Count how many products are currently low on stock.
      * Used by: admin dashboard badge
      */
-    public function countLowStock(): int
+    public function countLowStock(int $threshold = 5): int
     {
-        return (int) $this->db->query(
-            "SELECT COUNT(*) FROM Inventory
-             WHERE  stock_qty <= buffer_threshold"
-        )->fetchColumn();
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*)
+            FROM products p
+            INNER JOIN inventory i ON i.product_id = p.id
+            WHERE i.quantity <= :threshold"
+        );
+        $stmt->execute([':threshold' => $threshold]);
+        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -153,7 +154,7 @@ class InventoryModel
 
         $holders = implode(',', array_fill(0, count($productIds), '?'));
         $stmt    = $this->db->prepare(
-            "SELECT product_id, stock_qty, buffer_threshold
+            "SELECT product_id, quantity, last_updated
              FROM   Inventory
              WHERE  product_id IN ($holders)"
         );
@@ -181,13 +182,12 @@ class InventoryModel
     public function create(array $data): int
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO Inventory (product_id, stock_qty, buffer_threshold)
-             VALUES (:pid, :qty, :buf)"
+            "INSERT INTO Inventory (product_id, quantity)
+             VALUES (:pid, :qty)"
         );
         $stmt->execute([
             ':pid' => (int) $data['product_id'],
-            ':qty' => (int) ($data['stock_qty']         ?? 0),
-            ':buf' => (int) ($data['buffer_threshold']  ?? 0),
+            ':qty' => (int) ($data['quantity'] ?? 0),
         ]);
         return (int) $this->db->lastInsertId();
     }
@@ -201,7 +201,7 @@ class InventoryModel
     {
         $stmt = $this->db->prepare(
             "UPDATE Inventory
-             SET    stock_qty = :qty
+             SET    quantity = :qty, last_updated = NOW()
              WHERE  product_id = :pid"
         );
         return $stmt->execute([':qty' => max(0, $newQty), ':pid' => $productId]);
@@ -233,8 +233,8 @@ class InventoryModel
     {
         $stmt = $this->db->prepare(
             "UPDATE Inventory
-             SET    stock_qty = GREATEST(0, stock_qty - :qty)
-             WHERE  product_id = :pid"
+             SET    quantity = quantity - :qty, last_updated = NOW()
+             WHERE  product_id = :pid AND quantity >= :qty"
         );
         return $stmt->execute([':qty' => $quantity, ':pid' => $productId]);
     }
@@ -248,7 +248,7 @@ class InventoryModel
     {
         $stmt = $this->db->prepare(
             "UPDATE Inventory
-             SET    stock_qty = stock_qty + :qty
+             SET    quantity = quantity + :qty, last_updated = NOW()
              WHERE  product_id = :pid"
         );
         return $stmt->execute([':qty' => abs($quantity), ':pid' => $productId]);

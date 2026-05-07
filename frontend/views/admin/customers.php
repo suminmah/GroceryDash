@@ -1,5 +1,5 @@
-<?php $pageTitle = 'Customers'; 
-require __DIR__ . '/../layouts/header.php'; ?>
+<?php $pageTitle = 'Customers';
+?>
 
 <h1>Customers</h1>
 <table class="admin-table">
@@ -18,4 +18,3 @@ require __DIR__ . '/../layouts/header.php'; ?>
     <?php endif; ?>
     </tbody>
 </table>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>

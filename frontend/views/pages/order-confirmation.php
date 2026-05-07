@@ -1,7 +1,8 @@
 <?php
 // frontend/views/pages/order-confirmation.php
-$pageTitle = 'Order Confirmed! — FreshCart';
+$pageTitle = 'Order Confirmed! — GroceryDash';
 require __DIR__ . '/../layouts/header.php';
+$order = $order ?? [];
 ?>
 
 <div class="container" style="padding:3rem 0;max-width:700px;margin-inline:auto;text-align:center">
@@ -40,13 +41,13 @@ require __DIR__ . '/../layouts/header.php';
     </table>
 
     <div class="delivery-address">
-      <strong>Delivering to:</strong> <?= e($order['delivery_address']) ?>
+      <strong>Delivering to:</strong> <?= e($order['delivery_address'] ?? 'Address not provided') ?>
     </div>
   </div>
 
   <div class="confirm-actions">
     <a href="<?= APP_URL ?>/order/track/<?= e($order['order_number']) ?>" class="btn btn-primary">
-      📍 Track My Order
+    Track My Order
     </a>
     <a href="<?= APP_URL ?>/shop" class="btn btn-outline">
       Continue Shopping

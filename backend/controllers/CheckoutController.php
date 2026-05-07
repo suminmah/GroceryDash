@@ -34,19 +34,23 @@ class CheckoutController
      */
     public function form()
     {
-        $cartItems = $this->buildCartItems();
+        requireLogin();
+    
+        $cartItems = $this->getCartItems();
         if (empty($cartItems)) {
             redirect(APP_URL . '/cart');
         }
-
-        // Validate stock is still available for all cart items
-        $stockErrors = $this->validateCartStock($cartItems);
-
-        $totals           = $this->calcTotals($cartItems);
-        $availableSlots   = $this->slots->getAvailable(7);  // next 7 days
-
-        $pageTitle = 'Checkout — FreshCart';
-
+        
+        $totals = calcTotals($cartItems);
+        
+        // Get available delivery slots
+        $slotModel = new DeliverySlotModel();
+        $slots = $slotModel->getAvailableSlots(date('Y-m-d'));
+        
+        // Check if there's a flash error from previous attempt
+        $slotError = flash('slot_error');
+        $selectedSlotId = $_GET['slot'] ?? $_SESSION['checkout_slot_id'] ?? null;
+        
         require __DIR__ . '/../../frontend/views/pages/checkout.php';
     }
 
@@ -59,53 +63,62 @@ class CheckoutController
      */
     public function place()
     {
-        if (!isLoggedIn()) {
-            redirect(APP_URL . '/login?redirect=' . urlencode(APP_URL . '/checkout'));
-        }
+        requireLogin();
         verifyCsrf();
-
-        $cartItems = $this->buildCartItems();
+        
+        $slotId = (int) ($_POST['delivery_slot_id'] ?? 0);
+        $address = trim($_POST['delivery_address'] ?? '');
+        $paymentMethod = $_POST['payment_method'] ?? 'cod';
+        
+        // Validate slot availability
+        $slotModel = new DeliverySlotModel();
+        if (!$slotId || !$slotModel->isSlotAvailable($slotId)) {
+            flash('slot_error', 'The selected delivery slot is no longer available. Please choose another.');
+            redirect(APP_URL . '/checkout');
+        }
+        
+        // Get cart items
+        $cartItems = $this->getCartItems();
         if (empty($cartItems)) {
             redirect(APP_URL . '/cart');
         }
+        
+        // Calculate totals
+        $totals = calcTotals($cartItems);
 
-        // ── Validate slot ────────────────────────────────────
-        $slotId = (int) ($_POST['delivery_slot_id'] ?? 0);
-        if (!$slotId || !$this->slots->hasCapacity($slotId)) {
-            flash('error', 'The selected delivery slot is no longer available. Please choose another.');
-            redirect(APP_URL . '/checkout');
+        $items = [];
+        foreach ($cartItems as $item) {
+            $items[] = [
+                'product_id' => $item['product_id'],
+                'quantity'   => $item['quantity'],
+                'price'      => $item['sale_price'] ?? $item['price'], // ← key is 'price'
+            ];
         }
-
-        // ── Validate stock for each cart item ────────────────
-        $stockErrors = $this->validateCartStock($cartItems);
-        if (!empty($stockErrors)) {
-            flash('error', implode(' ', $stockErrors));
-            redirect(APP_URL . '/checkout');
-        }
-
-        // ── Build order data ─────────────────────────────────
-        $totals    = $this->calcTotals($cartItems);
+        
+        // Prepare order data
         $orderData = [
-            'user_id'          => (int) $_SESSION['user']['id'],
-            'delivery_slot_id' => $slotId,
-            'total_amount'     => $totals['total'],
+            'user_id'           => $_SESSION['user']['id'],
+            'delivery_slot_id'  => $slotId,
+            'total'             => $totals['total'],
+            'delivery_address'  => $address,
+            'payment_method'    => $paymentMethod,
         ];
-
-        // Map cart items → Order_Items format
-        $orderItems = array_map(fn($item) => [
-            'product_id' => (int)   $item['product_id'],
-            'quantity'   => (int)   $item['quantity'],
-            'unit_price' => (float) $item['price'],
-        ], $cartItems);
-
-        // ── Place the order ──────────────────────────────────
+        
+        // Create order
+        $orderModel = new OrderModel();
+        
         try {
-            $orderId = $this->orders->create($orderData, $orderItems);
+               $orderId = $orderModel->create($orderData, $items);
 
-            // Clear session cart
+            // Increment booked count
+            $slotModel->incrementBooked($slotId);
+            
+            // Clear cart
             $_SESSION['cart'] = [];
-
+            
+            flash('success', 'Your order has been placed successfully!');
             redirect(APP_URL . '/order/confirmation/' . $orderId);
+            
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());
             redirect(APP_URL . '/checkout');
@@ -239,6 +252,17 @@ class CheckoutController
     // ─────────────────────────────────────────────────────────
     //  PRIVATE helpers
     // ─────────────────────────────────────────────────────────
+
+    /**
+     * Retrieve cart items from the session.
+     * This is an alias for buildCartItems() used by public controller actions.
+     *
+     * @return array[]
+     */
+    private function getCartItems(): array
+    {
+        return $this->buildCartItems();
+    }
 
     /**
      * Rebuild cart items from session, enriched with DB product data.

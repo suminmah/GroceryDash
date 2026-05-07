@@ -43,16 +43,47 @@ class OrderController {
         }
 
         $totals = cartTotals($cartItems);
+        error_log('Totals: ' . print_r($totals, true));
+
+        global $db;
+
+        $address = '';
+
+        // 2. Check if a saved address was selected
+        if (!empty($_POST['saved_address'])) {
+            $addressId = (int)$_POST['saved_address'];
+            
+            // Fetch directly from the addresses table
+            $stmt = $db->prepare("SELECT * FROM addresses WHERE id = ? LIMIT 1");
+            $stmt->execute([$addressId]);
+            $savedAddr = $stmt->fetch(\PDO::FETCH_ASSOC);
+            
+            if ($savedAddr) {
+                $address = implode(', ', array_filter([
+                    $savedAddr['line1'],
+                    $savedAddr['line2'] ?? '',
+                    $savedAddr['city'],
+                    $savedAddr['pincode']
+                ]));
+            }
+        }
+
 
         // Build delivery address string
-        $address = implode(', ', array_filter([
-            $_POST['line1']   ?? '',
-            $_POST['line2']   ?? '',
-            $_POST['city']    ?? '',
-            $_POST['pincode'] ?? '',
-        ]));
+        if (empty($address)) {
+            $addressParts = array_filter([
+                $_POST['line1']   ?? '',
+                $_POST['line2']   ?? '',
+                $_POST['city']    ?? '',
+                $_POST['pincode'] ?? '',
+            ]);
 
-        if (!$address || !($_POST['city'] ?? '')) {
+            if (!empty($addressParts)) {
+                $address = implode(', ', $addressParts);
+            }
+        }
+
+        if (empty(trim($address))) {
             flash('checkout_error', 'Please provide a valid delivery address.');
             redirect(APP_URL . '/checkout');
         }
@@ -60,24 +91,28 @@ class OrderController {
         $orderNumber = generateOrderNumber();
         $orderData   = [
             'user_id'          => isLoggedIn() ? $_SESSION['user']['id'] : null,
-            'order_number'     => $orderNumber,
-            'subtotal'         => $totals['subtotal'],
-            'delivery_fee'     => $totals['delivery_fee'],
-            'total'            => $totals['total'],
+            'subtotal'         => (float) ($totals['subtotal'] ?? 0),
+            'delivery_fee'     => (float) ($totals['delivery_fee'] ?? 0),
+            'discount'         => (float) ($totals['discount'] ?? 0),
+            'total'            => (float) ($totals['total'] ?? 0),
             'payment_method'   => $_POST['payment_method'] ?? 'cod',
             'delivery_address' => $address,
-            'delivery_slot'    => $_POST['delivery_slot'] ?? null,
+            'delivery_slot_id'    => $_POST['delivery_slot'] ?? null,
             'notes'            => $_POST['notes'] ?? null,
         ];
 
-        $orderItems = array_map(fn($item) => [
-            'product_id' => $item['id'],
-            'name'       => $item['name'],
-            'price'      => $item['sale_price'] ?? $item['price'],
-            'quantity'   => $item['quantity'],
-        ], $cartItems);
+        $orderItems = array_map(function($item) {
+            $name = $item['name'] ?? 'Product';
+
+            return [
+                'product_id' => $item['id'],
+                'price'      => $item['sale_price'] ?? $item['price'],
+                'quantity'   => $item['quantity'],
+            ];
+    }, $cartItems);
 
         $orderId = $this->order->create($orderData, $orderItems);
+    
 
         // Clear cart
         $_SESSION['cart']           = [];

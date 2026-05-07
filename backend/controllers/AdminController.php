@@ -270,11 +270,40 @@ class AdminController
             ['start_time' => '12:00:00', 'end_time' => '16:00:00', 'max_capacity' => 30],
             ['start_time' => '16:00:00', 'end_time' => '20:00:00', 'max_capacity' => 30],
         ];
-        $created = $this->slots->bulkCreateForDateRange(
-            $_POST['from_date'],
-            $_POST['to_date'],
-            $templates
-        );
+
+        $fromDate = $_POST['from_date'] ?? '';
+        $toDate   = $_POST['to_date']   ?? '';
+        $start    = DateTime::createFromFormat('Y-m-d', $fromDate);
+        $end      = DateTime::createFromFormat('Y-m-d', $toDate);
+
+        if (!$start || !$end) {
+            flash('error', 'Invalid date range.');
+            redirect(APP_URL . '/admin/slots');
+        }
+
+        $start->setTime(0, 0, 0);
+        $end->setTime(0, 0, 0);
+
+        if ($start > $end) {
+            flash('error', 'The start date must be before or equal to the end date.');
+            redirect(APP_URL . '/admin/slots');
+        }
+
+        $created = 0;
+        $interval = new DateInterval('P1D');
+
+        for ($date = clone $start; $date <= $end; $date->add($interval)) {
+            foreach ($templates as $template) {
+                $this->slots->create([
+                    'slot_date'    => $date->format('Y-m-d'),
+                    'start_time'   => $template['start_time'],
+                    'end_time'     => $template['end_time'],
+                    'max_capacity' => $template['max_capacity'],
+                ]);
+                $created++;
+            }
+        }
+
         flash('success', "$created delivery slots created.");
         redirect(APP_URL . '/admin/slots');
     }
