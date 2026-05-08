@@ -1,0 +1,122 @@
+/* Container & Header */
+.user-orders-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.page-header {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.page-header h1 {
+    color: #2c3e2f;
+    margin-bottom: 5px;
+}
+
+.page-header p {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Orders Grid & Cards */
+.orders-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.order-card {
+    background: #fff;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.order-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Card Header */
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #edf2f7;
+    margin-bottom: 15px;
+}
+
+.label {
+    display: block;
+    font-size: 0.75rem;
+    color: #95a5a6;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.order-id strong {
+    font-size: 1.1rem;
+    color: #2d3436;
+}
+
+/* Status Badges - Matching Admin Theme */
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-pending { background: #fff8e1; color: #f57f17; }
+.status-delivered { background: #e8f5e9; color: #2e7d32; }
+.status-cancelled { background: #ffebee; color: #c62828; }
+
+/* Card Body */
+.order-body {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 20px;
+}
+
+.order-total {
+    font-weight: 700;
+    color: #2e7d32;
+    font-size: 1.05rem;
+}
+
+/* Buttons & Empty State */
+.btn-outline {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 2px solid #2e7d32;
+    color: #2e7d32;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-outline:hover {
+    background: #2e7d32;
+    color: #fff;
+}
+
+.empty-orders {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f9f9f9;
+    border-radius: 12px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}

@@ -12,7 +12,13 @@ $page = $page ?? 1;
     </div>
     <table class="admin-table">
         <thead>
-            <tr><th>ID</th><th>Name</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+            </tr>
         </thead>
         <tbody>
             <?php foreach ($products as $product): ?>

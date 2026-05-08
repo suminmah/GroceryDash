@@ -35,11 +35,11 @@
                 <tbody>
                 <?php foreach ($recentOrders as $order): ?> 
                     <tr>
-                        <td><?= $order['order_id'] ?></td>
+                        <td><?= $order['id'] ?></td>
                         <td><?= htmlspecialchars($order['customer_name']) ?></td>
                         <td><?= formatPrice($order['total']) ?></td>
                         <td><?= htmlspecialchars($order['status']) ?></td>
-                        <td><?= date('M d, Y', strtotime($order['order_date'])) ?></td>
+                        <td><?= date('M d, Y', strtotime($order['created_at'])) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

@@ -1,4 +1,4 @@
-<?php $pageTitle = $pageTitle; 
+<?php $pageTitle = $pageTitle ?? 'Add Product — Admin'; 
 require __DIR__ . '/../layouts/header.php'; 
 $product = $product ?? null;
 ?>

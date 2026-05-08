@@ -79,7 +79,10 @@ class AdminController
         $pages   = (int) ceil($total / 20);
 
         $pageTitle = 'Orders — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/orders.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** GET /admin/orders/{id} */
@@ -89,7 +92,10 @@ class AdminController
         if (!$order) { http_response_code(404); die('Order not found.'); }
 
         $pageTitle = 'Order #' . $orderId . ' — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/order-detail.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** POST /admin/orders/{id}/status */
@@ -145,7 +151,10 @@ class AdminController
         $categories = $this->categories->getAll();
         $product    = null;  // null = new product form
         $pageTitle  = 'Add Product — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/product-form.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** GET /admin/products/{id}/edit */
@@ -155,7 +164,10 @@ class AdminController
         if (!$product) { http_response_code(404); die('Product not found.'); }
         $categories = $this->categories->getAll();
         $pageTitle  = 'Edit Product — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/product-form.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** POST /admin/products (create) */
@@ -212,14 +224,17 @@ class AdminController
         $items     = $this->inventory->getAll();
         $lowCount  = $this->inventory->countLowStock();
         $pageTitle = 'Inventory — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/inventory.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** POST /admin/inventory/{productId}/restock */
     public function restock(int $productId)
     {
         verifyCsrf();
-        $qty = max(0, (int) ($_POST['stock_qty'] ?? 0));
+        $qty = max(0, (int) ($_POST['quantity'] ?? 0));
         $this->inventory->setStock($productId, $qty);
 
         $buf = (int) ($_POST['buffer_threshold'] ?? -1);
@@ -244,7 +259,10 @@ class AdminController
             date('Y-m-d', strtotime('+14 days'))
         );
         $pageTitle = 'Delivery Slots — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/slots.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** POST /admin/slots (create single slot) */
@@ -326,7 +344,10 @@ class AdminController
     {
         $tree      = $this->categories->getTree();
         $pageTitle = 'Categories — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/categories.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** POST /admin/categories (create) */
@@ -350,6 +371,9 @@ class AdminController
     {
         $customers = $this->users->getAllCustomers();
         $pageTitle = 'Customers — Admin';
+        ob_start();
         require __DIR__ . '/../../frontend/views/admin/customers.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 }

@@ -1,0 +1,117 @@
+/* Container & Global Main Styling */
+.admin-main {
+    flex: 1;
+    padding: 2.5rem;
+    background-color: #f4f7f6;
+    min-height: 100vh;
+}
+
+
+/* Header Styling */
+h1 {
+    color: #2c3e2f;
+    font-size: 1.8rem;
+    border-left: 5px solid #2e7d32;
+    padding-left: 15px;
+    margin: 0;
+}
+
+/* The Table "Card" Wrapper */
+.table-container {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #edf2f7;
+    margin-top: 1rem;
+}
+
+/* Table Design */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    text-align: left;
+    background: #f8f9fa;
+    color: #636e72;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    padding: 1rem;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    color: #2d3436;
+}
+
+.admin-table tr:hover {
+    background-color: #fcfdfc;
+}
+
+/* Professional Status Badges */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-pending { background: #fff8e1; color: #f57f17; }
+.status-delivered { background: #e8f5e9; color: #2e7d32; }
+.status-cancelled { background: #ffebee; color: #c62828; }
+
+/* Buttons & Links */
+.btn-primary {
+    background: #2e7d32;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.btn-primary:hover {
+    background: #1b5e20;
+    box-shadow: 0 4px 8px rgba(46, 125, 50, 0.2);
+}
+
+.btn-view {
+    color: #1976d2;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.btn-view:hover {
+    text-decoration: underline;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.page-btn {
+    padding: 8px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #2d3436;
+    transition: 0.2s;
+}
+
+.page-btn.active {
+    background: #2e7d32;
+    color: white;
+    border-color: #2e7d32;
+}
