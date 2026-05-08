@@ -15,12 +15,12 @@
         <tbody>
             <?php foreach ($orders as $order): ?>
             <tr>
-                <td><?= $order['order_id'] ?></td>      <!-- changed from 'id' -->
+                <td><?= $order['id'] ?></td>      <!-- changed from 'id' -->
                 <td><?= htmlspecialchars($order['customer_name']) ?></td>
-                <td><?= formatPrice($order['total_amount']) ?></td>   <!-- changed from 'total' -->
+                <td><?= formatPrice($order['total']) ?></td>   <!-- changed from 'total' -->
                 <td><?= htmlspecialchars($order['status']) ?></td>
-                <td><?= date('M d, Y', strtotime($order['order_date'])) ?></td>
-                <td><a href="<?= APP_URL ?>/admin/orders/<?= $order['order_id'] ?>">View</a></td>
+                <td><?= date('M d, Y', strtotime($order['created_at'])) ?></td>
+                <td><a href="<?= APP_URL ?>/admin/orders/<?= $order['id'] ?>">View</a></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
