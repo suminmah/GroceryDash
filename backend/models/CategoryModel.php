@@ -29,7 +29,7 @@ class CategoryModel
     public function getAll(): array
     {
         return $this->db->query(
-            "SELECT id, name, slug, parent_id
+            "SELECT id, name, slug, parent_id, sort_order, is_active
              FROM   Categories
              ORDER  BY name ASC"
         )->fetchAll();

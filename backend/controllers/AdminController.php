@@ -273,7 +273,7 @@ class AdminController
             'slot_date'    => $_POST['slot_date'],
             'start_time'   => $_POST['start_time'],
             'end_time'     => $_POST['end_time'],
-            'max_capacity' => (int) ($_POST['max_capacity'] ?? 1),
+            'capacity' => (int) ($_POST['max_capacity'] ?? 10),
         ]);
         flash('success', 'Delivery slot created.');
         redirect(APP_URL . '/admin/slots');
@@ -284,9 +284,9 @@ class AdminController
     {
         verifyCsrf();
         $templates = [
-            ['start_time' => '08:00:00', 'end_time' => '12:00:00', 'max_capacity' => 30],
-            ['start_time' => '12:00:00', 'end_time' => '16:00:00', 'max_capacity' => 30],
-            ['start_time' => '16:00:00', 'end_time' => '20:00:00', 'max_capacity' => 30],
+            ['start_time' => '08:00:00', 'end_time' => '12:00:00', 'capacity' => 30],
+            ['start_time' => '12:00:00', 'end_time' => '16:00:00', 'capacity' => 30],
+            ['start_time' => '16:00:00', 'end_time' => '20:00:00', 'capacity' => 30],
         ];
 
         $fromDate = $_POST['from_date'] ?? '';
@@ -316,7 +316,7 @@ class AdminController
                     'slot_date'    => $date->format('Y-m-d'),
                     'start_time'   => $template['start_time'],
                     'end_time'     => $template['end_time'],
-                    'max_capacity' => $template['max_capacity'],
+                    'capacity' => $template['capacity'],
                 ]);
                 $created++;
             }
@@ -342,11 +342,38 @@ class AdminController
     /** GET /admin/categories */
     public function categoriesList()
     {
-        $tree      = $this->categories->getTree();
+        // Check for the JSON request
+        if (isset($_GET['get_category'])) {
+            // Clear any accidental spaces or hidden characters from your config files
+            if (ob_get_length()) ob_clean(); 
+            
+            header('Content-Type: application/json');
+            
+            try {
+                $id = (int)$_GET['get_category'];
+                
+                // CORRECT STATIC CALL based on your database.php
+                $conn = Database::connect(); 
+                
+                $stmt = $conn->prepare("SELECT id, name, slug, parent_id, sort_order, is_active FROM categories WHERE id = ?");
+                $stmt->execute([$id]);
+                $category = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                echo json_encode($category ?: ['error' => 'Category not found']);
+            } catch (Exception $e) {
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            exit; // Stop the rest of the Admin Menu from loading
+        }
+
+        // Normal Page Rendering
+        $categories      = $this->categories->getTree();
         $pageTitle = 'Categories — Admin';
+        
         ob_start();
         require __DIR__ . '/../../frontend/views/admin/categories.php';
         $content = ob_get_clean();
+        
         require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 

@@ -15,7 +15,7 @@ $selectedSlotId = $_POST['delivery_slot_id'] ?? null;
   <?php endif; ?>
 
   <form method="POST" action="<?= APP_URL ?>/checkout" class="checkout-layout">
-    <input type="hidden" name="_token" value="<?= csrfToken() ?>">
+    <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
 
     <!-- ─── Left column ─── -->
     <div class="checkout-left">

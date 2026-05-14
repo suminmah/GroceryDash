@@ -1,5 +1,8 @@
 <?php
 // frontend/views/admin/dashboard.php
+$pageTitle = 'Admin Dashboard';
+$icon = 'tachometer-alt';
+
 ?>
 
 <!-- Main Content -->

@@ -7,6 +7,7 @@ require_once __DIR__ . '/../backend/controllers/ShopController.php';
 require_once __DIR__ . '/../backend/controllers/CheckoutController.php';
 require_once __DIR__ . '/../backend/controllers/AdminController.php';
 require_once __DIR__ . '/../backend/controllers/AuthController.php';
+require_once __DIR__ . '/../backend/controllers/OrderController.php';
 require_once __DIR__ . '/../backend/models/Category.php';
 
 session_set_cookie_params([
@@ -72,7 +73,7 @@ if ($method === 'GET') {
     elseif (match_route($uri, '/order/confirmation/{id}', $params))  { (new CheckoutController())->confirmation((int) $params['id']); }
     elseif (match_route($uri, '/order/track/{id}', $params))         { (new CheckoutController())->track((int) $params['id']); }
     elseif ($uri === '/account/orders')                               { (new CheckoutController())->myOrders(); }
-    elseif (match_route($uri, '/account/orders/{id}', $params))      { (new CheckoutController())->orderDetail((int) $params['id']); }
+    elseif (match_route($uri, '/account/orders/{id}', $params))      { (new OrderController())->orderDetail((int) $params['id']); }
     elseif ($uri === '/login')                                        { (new AuthController())->loginForm(); }
     elseif ($uri === '/register')                                     { (new AuthController())->registerForm(); }
     elseif ($uri === '/logout')                                       { (new AuthController())->logout(); }

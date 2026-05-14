@@ -3,7 +3,15 @@
 
 <h1>Customers</h1>
 <table class="admin-table">
-    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Joined</th>
+        </tr>
+    </thead>
     <tbody>
     <?php if(isset($customers)): ?>
     <?php foreach ($customers as $c): ?>

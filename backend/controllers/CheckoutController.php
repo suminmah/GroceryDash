@@ -15,12 +15,14 @@ class CheckoutController
     private OrderModel        $orders;
     private DeliverySlotModel $slots;
     private InventoryModel    $inventory;
+    private PDO               $db;
 
     public function __construct()
     {
         $this->orders    = new OrderModel();
         $this->slots     = new DeliverySlotModel();
         $this->inventory = new InventoryModel();
+        $this->db        = Database::connect();
     }
 
     // ─────────────────────────────────────────────────────────
@@ -65,60 +67,82 @@ class CheckoutController
     {
         requireLogin();
         verifyCsrf();
-        
-        $slotId = (int) ($_POST['delivery_slot_id'] ?? 0);
-        $address = trim($_POST['delivery_address'] ?? '');
+        unset($_SESSION['csrf_token']);
+        csrfToken(); // regenerate for next request
+
+        $slotId        = (int) ($_POST['delivery_slot_id'] ?? 0);
         $paymentMethod = $_POST['payment_method'] ?? 'cod';
-        
-        // Validate slot availability
-        $slotModel = new DeliverySlotModel();
-        if (!$slotId || !$slotModel->isSlotAvailable($slotId)) {
-            flash('slot_error', 'The selected delivery slot is no longer available. Please choose another.');
+
+        // Build address from saved or manual fields
+        $address = '';
+        if (!empty($_POST['saved_address'])) {
+            $addressId = (int) $_POST['saved_address'];
+            $stmt = Database::connect()->prepare("SELECT * FROM addresses WHERE id = ? LIMIT 1");
+            $stmt->execute([$addressId]);
+            $savedAddr = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($savedAddr) {
+                $address = implode(', ', array_filter([
+                    $savedAddr['line1'],
+                    $savedAddr['line2'] ?? '',
+                    $savedAddr['city'],
+                    $savedAddr['pincode'],
+                ]));
+            }
+        }
+        if (empty($address)) {
+            $address = implode(', ', array_filter([
+                $_POST['line1']   ?? '',
+                $_POST['line2']   ?? '',
+                $_POST['city']    ?? '',
+                $_POST['pincode'] ?? '',
+            ]));
+        }
+        if (empty(trim($address))) {
+            flash('checkout_error', 'Please provide a valid delivery address.');
             redirect(APP_URL . '/checkout');
         }
-        
-        // Get cart items
+
+        // Validate slot
+        if (!$slotId || !$this->slots->isSlotAvailable($slotId)) {
+            flash('slot_error', 'The selected delivery slot is no longer available.');
+            redirect(APP_URL . '/checkout');
+        }
+
+        // Cart
         $cartItems = $this->getCartItems();
         if (empty($cartItems)) {
             redirect(APP_URL . '/cart');
         }
-        
-        // Calculate totals
-        $totals = calcTotals($cartItems);
+
+        $totals = $this->calcTotals($cartItems);  // $this-> not global
 
         $items = [];
         foreach ($cartItems as $item) {
             $items[] = [
                 'product_id' => $item['product_id'],
                 'quantity'   => $item['quantity'],
-                'price'      => $item['sale_price'] ?? $item['price'], // ← key is 'price'
+                'price'      => $item['sale_price'] ?? $item['price'],
             ];
         }
-        
-        // Prepare order data
-        $orderData = [
-            'user_id'           => $_SESSION['user']['id'],
-            'delivery_slot_id'  => $slotId,
-            'total'             => $totals['total'],
-            'delivery_address'  => $address,
-            'payment_method'    => $paymentMethod,
-        ];
-        
-        // Create order
-        $orderModel = new OrderModel();
-        
-        try {
-               $orderId = $orderModel->create($orderData, $items);
 
-            // Increment booked count
-            $slotModel->incrementBooked($slotId);
-            
-            // Clear cart
+        $orderData = [
+            'user_id'          => $_SESSION['user']['id'],
+            'subtotal'         => $totals['subtotal'],
+            'delivery_fee'     => $totals['delivery_fee'],
+            'discount'         => 0,
+            'total'            => $totals['total'],
+            'payment_method'   => $paymentMethod,
+            'delivery_address' => $address,
+            'delivery_slot_id' => $slotId,
+            'notes'            => $_POST['notes'] ?? '',
+        ];
+
+        try {
+            $orderId = $this->orders->create($orderData, $items);
+            $this->slots->incrementBooked($slotId);
             $_SESSION['cart'] = [];
-            
             flash('success', 'Your order has been placed successfully!');
             redirect(APP_URL . '/order/confirmation/' . $orderId);
-            
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());
             redirect(APP_URL . '/checkout');

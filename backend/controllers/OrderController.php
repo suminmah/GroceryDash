@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../models/Order.php';
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../helpers/functions.php';
+require_once __DIR__ . '/../models/OrderModel.php';
 
 class OrderController {
     private Order $order;
@@ -97,7 +98,7 @@ class OrderController {
             'total'            => (float) ($totals['total'] ?? 0),
             'payment_method'   => $_POST['payment_method'] ?? 'cod',
             'delivery_address' => $address,
-            'delivery_slot_id'    => $_POST['delivery_slot'] ?? null,
+            'delivery_slot_id'    => $_POST['delivery_slot_id'] ?? null,
             'notes'            => $_POST['notes'] ?? null,
         ];
 
@@ -106,7 +107,8 @@ class OrderController {
 
             return [
                 'product_id' => $item['id'],
-                'price'      => $item['sale_price'] ?? $item['price'],
+                'name'       => $item['name'] ?? 'Product',
+                'price'      => $item['price'] ?? $item['price'],
                 'quantity'   => $item['quantity'],
             ];
     }, $cartItems);
@@ -148,5 +150,21 @@ class OrderController {
         requireLogin();
         $orders = $this->order->getByUser($_SESSION['user']['id']);
         require __DIR__ . '/../../frontend/views/pages/my-orders.php';
+    }
+
+    /** GET /account/orders/{id} */
+    public function orderDetail(int $orderId) {
+        requireLogin();
+        $order = $this->order->findById($orderId);
+
+        // Block access if order doesn't exist or belongs to another user
+        if (!$order || $order['user_id'] !== $_SESSION['user']['id']) {
+            http_response_code(404);
+            require __DIR__ . '/../../frontend/views/errors/404.php';
+            return;
+        }
+
+        $pageTitle = 'Order #' . $order['order_number'];
+        require __DIR__ . '/../../frontend/views/pages/order-detail.php';
     }
 }

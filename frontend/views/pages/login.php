@@ -14,7 +14,7 @@ require __DIR__ . '/../layouts/header.php';
     <?php endif; ?>
 
     <form method="POST" action="<?= APP_URL ?>/login">
-      <input type="hidden" name="_token" value="<?= csrfToken() ?>">
+      <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
       <input type="hidden" name="redirect" value="<?= e($_GET['redirect'] ?? APP_URL . '/account/orders') ?>">
 
       <div class="form-group">

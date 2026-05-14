@@ -96,4 +96,15 @@ class Order {
         );
         return $stmt->execute([':status' => $status, ':id' => $orderId]);
     }
+
+    public function findById(int $orderId): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM orders WHERE id = :id LIMIT 1"
+        );
+        $stmt->execute([':id' => $orderId]);
+        $order = $stmt->fetch();
+        if (!$order) return null;
+        $order['items'] = $this->getItems($orderId);
+        return $order;
+    }
 }

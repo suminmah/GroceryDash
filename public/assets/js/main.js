@@ -196,3 +196,4 @@ if (searchInput) {
 }
 
 console.log('%c🛒 FreshCart', 'color:#2D8C4E;font-weight:700;font-size:1.2rem');
+
