@@ -13,23 +13,15 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body>
-    <div class="admin-layout">
+    <div class="admin-layout d-flex">
         <!-- Sidebar Navigation -->
-        <!-- <aside class="admin-sidebar">
-            <h3>Admin Menu</h3>
-            <ul class="admin-nav">
-                <li><a href="<?= APP_URL ?>/admin/dashboard" class="<?= str_contains($_SERVER['REQUEST_URI'], '/dashboard') ? 'active' : '' ?>">📊 Dashboard</a></li>
-                <li><a href="<?= APP_URL ?>/admin/orders" class="<?= str_contains($_SERVER['REQUEST_URI'], '/orders') ? 'active' : '' ?>">📦 Orders</a></li>
-                <li><a href="<?= APP_URL ?>/admin/products" class="<?= str_contains($_SERVER['REQUEST_URI'], '/products') ? 'active' : '' ?>">🛒 Products</a></li>
-                <li><a href="<?= APP_URL ?>/admin/inventory" class="<?= str_contains($_SERVER['REQUEST_URI'], '/inventory') ? 'active' : '' ?>">📦 Inventory</a></li>
-                <li><a href="<?= APP_URL ?>/admin/categories" class="<?= str_contains($_SERVER['REQUEST_URI'], '/categories') ? 'active' : '' ?>">🏷️ Categories</a></li>
-                <li><a href="<?= APP_URL ?>/admin/slots" class="<?= str_contains($_SERVER['REQUEST_URI'], '/slots') ? 'active' : '' ?>">⏰ Delivery Slots</a></li>
-                <li><a href="<?= APP_URL ?>/admin/customers" class="<?= str_contains($_SERVER['REQUEST_URI'], '/customers') ? 'active' : '' ?>">👥 Customers</a></li>
-                <li class="logout-item"><a href="<?= APP_URL ?>/logout">🚪 Logout</a></li>
-            </ul>
-        </aside> -->
-
         <aside class="col-md-3 col-lg-2 bg-light vh-100 p-3">
+            <div class="admin-logo-branding text-center mb-4 pb-3 border-bottom">
+                <img src="<?= htmlspecialchars($adminLogo ?? APP_URL . '/assets/images/logo.png') ?>" 
+                     alt="Website Logo" 
+                     class="img-fluid" 
+                     style="max-height: 200px; max-width: 100%; width: auto; height: auto; object-fit: contain;">
+            </div>
             <h3 class="text-success mb-4">Admin Menu</h3>
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item">
@@ -74,6 +66,15 @@
                         <i class="bi bi-people"></i> Customers
                     </a>
                 </li>
+
+                <!-- ADDED: Logo Settings Link Option -->
+                <li class="nav-item">
+                    <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], 'settings/logo') ? 'active bg-success text-white' : 'text-dark' ?>" 
+                       href="<?= APP_URL ?>/admin/settings/logo">
+                        <i class="bi bi-image"></i> Logo Settings
+                    </a>
+                </li>
+
                 <li class="nav-item mt-3 pt-3 border-top">
                     <a class="nav-link text-danger" href="<?= APP_URL ?>/logout">
                         <i class="bi bi-box-arrow-right"></i> Logout
@@ -83,8 +84,8 @@
         </aside>
 
         <!-- Main Content – where the page-specific content will be injected -->
-        <main class="admin-main">
-            <?=  $content; ?>
+        <main class="admin-main flex-grow-1 p-4">
+            <?= $content; ?>
         </main>
     </div>
 

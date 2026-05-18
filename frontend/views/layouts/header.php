@@ -2,6 +2,22 @@
 // frontend/views/layouts/header.php
 // Usage: require with $pageTitle set in the calling view.
 
+if (!isset($settings)) {
+    require_once __DIR__ . '/../../../backend/models/Setting.php';
+    $settings = new Setting(Database::connect());
+}
+
+// Fetch the saved asset path string from your database
+$savedLogo = $settings->get('site_logo');
+$headerLogoUrl = null;
+
+if (!empty($savedLogo)) {
+    // Format the URL path string so it resolves cleanly on your local subdirectory
+    $headerLogoUrl = (str_starts_with($savedLogo, 'http') || str_contains($savedLogo, '/grocery-shop/public')) 
+        ? $savedLogo 
+        : APP_URL . '/' . ltrim($savedLogo, '/');
+}
+
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
@@ -44,9 +60,17 @@ $categories = $categories ?? (new Category())->getAll();
   <div class="container header-inner">
 
     <!-- Logo -->
-    <a href="<?= APP_URL ?>/" class="logo">
-      <span class="logo-icon">🛒</span>
-      <span class="logo-text">Grocery<strong>Dash</strong></span>
+    <a href="<?= APP_URL ?>/" class="logo d-inline-flex align-items-center text-decoration-none">
+      <?php if (!empty($headerLogoUrl)): ?>
+        <img src="<?= htmlspecialchars($headerLogoUrl) ?>" 
+             alt="GroceryDash Logo" 
+             style="height: 50px; width: auto; object-fit: contain; max-width: 160px; display: block;">
+      <?php else: ?>
+        <span class="logo-icon" style="margin-right: 0.5rem;">🛒</span>
+        <span class="logo-text" style="color: #198754; font-size: 1.4rem; font-weight: 500;">
+            Grocery<strong style="font-weight: 700;">Dash</strong>
+        </span>
+      <?php endif; ?>
     </a>
 
     <!-- Search -->

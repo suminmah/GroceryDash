@@ -90,6 +90,7 @@ if ($method === 'GET') {
     elseif ($uri === '/admin/slots')                                  { (new AdminController())->slotsList(); }
     elseif ($uri === '/admin/categories')                             { (new AdminController())->categoriesList(); }
     elseif ($uri === '/admin/customers')                              { (new AdminController())->customersList(); }
+    elseif ($uri === '/admin/settings/logo') { (new AdminController())->logoForm(); }
     else { http_response_code(404); require __DIR__ . '/../frontend/views/errors/404.php'; }
 
 } elseif ($method === 'POST') {
@@ -109,5 +110,6 @@ if ($method === 'GET') {
     elseif ($uri === '/admin/slots/bulk')                                   { (new AdminController())->slotBulkCreate(); }
     elseif (match_route($uri, '/admin/slots/{id}/delete', $params))        { (new AdminController())->slotDelete((int) $params['id']); }
     elseif ($uri === '/admin/categories')                                   { (new AdminController())->categoryCreate(); }
+    elseif ($uri === '/admin/settings/logo')                                { (new AdminController())->logoForm(); }
     else { http_response_code(405); echo 'Method not allowed.'; }
 } else { http_response_code(405); echo 'Method not allowed.'; }

@@ -12,6 +12,7 @@ require_once __DIR__ . '/../models/InventoryModel.php';
 require_once __DIR__ . '/../models/DeliverySlotModel.php';
 require_once __DIR__ . '/../models/UserModel.php';
 require_once __DIR__ . '/../helpers/functions.php';
+require_once __DIR__ . '/../models/Setting.php';
 
 class AdminController
 {
@@ -21,6 +22,7 @@ class AdminController
     private InventoryModel    $inventory;
     private DeliverySlotModel $slots;
     private UserModel         $users;
+    private Setting           $settings;
 
     public function __construct()
     {
@@ -35,6 +37,7 @@ class AdminController
         $this->inventory  = new InventoryModel();
         $this->slots      = new DeliverySlotModel();
         $this->users      = new UserModel();
+        $this->settings   = new Setting($dbConnection = Database::connect());
     }
 
     // ─────────────────────────────────────────────────────────
@@ -46,6 +49,23 @@ class AdminController
      */
     public function dashboard()
     {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
+        // Ensure your standard authentication guards remain active
+        if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
+            header("Location: " . APP_URL . "/login");
+            exit;
+        }
+
+        // 1. FETCH LOGO PATH FOR THE SHARED LAYOUT CONTEXT
+        $savedLogo = $this->settings->get('site_logo');
+        $adminLogo = !empty($savedLogo) ? $savedLogo : '/assets/images/logo.png';
+        
+        // Format the path completely so the layout view reads it cleanly
+        if (!str_starts_with($adminLogo, 'http') && !str_contains($adminLogo, '/grocery-shop/public')) {
+            $adminLogo = APP_URL . '/' . ltrim($adminLogo, '/');
+        }
+
         $stats       = $this->orders->getDashboardStats();
         $recentOrders= $this->orders->getAll('', 1, 5);
         $lowStock    = $this->inventory->getLowStockItems();
@@ -59,6 +79,7 @@ class AdminController
         );
 
         $pageTitle = 'Admin Dashboard — GroceryDash';
+        
         ob_start();
         require __DIR__ . '/../../frontend/views/admin/dashboard.php';
         $content = ob_get_clean();
@@ -402,5 +423,93 @@ class AdminController
         require __DIR__ . '/../../frontend/views/admin/customers.php';
         $content = ob_get_clean();
         require __DIR__ . '/../../frontend/views/admin/layout.php';
+    }
+
+    /** GET /admin/settings/logo */
+    public function logoForm() {
+        // Authenticate as admin (similar to your dashboard guard)
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
+            header("Location: " . APP_URL . "/login");
+            exit;
+        }
+
+        $error = flash('logo_error');
+        $success = flash('logo_success');
+        
+        // Fetch the raw value saved inside your database
+        $savedLogo = $this->settings->get('site_logo');
+
+        // Clean up the URL format to make sure it includes the directory root
+        if (!empty($savedLogo)) {
+            $currentLogo = $savedLogo;
+        } else {
+            // Hardcoded fallback relative path matching your project structure
+            $currentLogo = '/grocery-shop/public/assets/images/logo.png'; 
+        }
+
+        require __DIR__ . '/../../frontend/views/admin/logo-settings.php';
+    }
+
+    /** POST /admin/settings/logo */
+    public function updateLogo() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        verifyCsrf(); // Ensure your CSRF helper runs here
+
+        if (!isset($_FILES['logo']) || $_FILES['logo']['error'] === UPLOAD_ERR_NO_FILE) {
+            flash('logo_error', 'Please select a valid image file to upload.');
+            redirect(APP_URL . '/admin/settings/logo');
+        }
+
+        $file = $_FILES['logo'];
+        
+        // 1. Validate File Errors
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            flash('logo_error', 'An error occurred during file upload.');
+            redirect(APP_URL . '/admin/settings/logo');
+        }
+
+        // 2. Validate File Size (e.g., max 2MB)
+        $maxSize = 2 * 1024 * 1024; 
+        if ($file['size'] > $maxSize) {
+            flash('logo_error', 'File size exceeds the 2MB limit.');
+            redirect(APP_URL . '/admin/settings/logo');
+        }
+
+        // 3. Validate File Type / Extension
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+
+        if (!in_array($mimeType, $allowedMimes)) {
+            flash('logo_error', 'Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.');
+            redirect(APP_URL . '/admin/settings/logo');
+        }
+
+        // 4. Setup Upload Paths
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = 'logo_' . time() . '.' . $ext; // Unique name to prevent browser caching issues
+        $uploadDir = __DIR__ . '/../../public/uploads/logo/';
+
+        // Ensure directory exists
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $destination = $uploadDir . $filename;
+
+        // 5. Move File and Save to Database
+        if (move_uploaded_file($file['tmp_name'], $destination)) {
+            $relativeUrlPath = APP_URL . '/uploads/logo/' . $filename;
+            
+            // Update your database setting here
+            // Example: $this->settings->update('site_logo', $relativeUrlPath);
+            
+            flash('logo_success', 'Website logo updated successfully!');
+        } else {
+            flash('logo_error', 'Failed to save the uploaded image to the server.');
+        }
+
+        redirect(APP_URL . '/admin/settings/logo');
     }
 }
