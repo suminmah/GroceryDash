@@ -34,10 +34,10 @@ $categories = $categories ?? (new Category())->getAll();
 <body>
 
 <!-- ═══ TOPBAR ═══════════════════════════════════════════ -->
-<div class="topbar">
+<!-- <div class="topbar">
   <span>🚚 Free delivery on orders above <?= formatPrice(FREE_DELIVERY_THRESHOLD) ?></span>
   <span>📞 +977-1-4000000</span>
-</div>
+</div> -->
 
 <!-- ═══ HEADER ════════════════════════════════════════════ -->
 <header class="site-header">

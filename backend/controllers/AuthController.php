@@ -13,6 +13,31 @@ class AuthController {
 
     /** GET /login */
     public function loginForm() {
+
+        // 1. Check if the user session is already active
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (isset($_SESSION['user'])) {
+            // Read user role to determine the correct landing page
+            $userRole = strtolower($_SESSION['user']['role'] ?? 'customer');
+            
+            if ($userRole === 'admin') {
+                redirect(APP_URL . '/admin/dashboard');
+            } else {
+                // If a specific redirect target is provided via URL parameters, use it
+                $redirectTarget = $_GET['redirect'] ?? APP_URL . '/account/orders';
+                redirect($redirectTarget);
+            }
+        }
+
+        // 2. Clear browser cache to handle back-button operations safely
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Cache-Control: post-check=0, pre-check=0", false);
+        header("Pragma: no-cache");
+        header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+        
         $error    = flash('auth_error');
         $redirect = $_GET['redirect'] ?? APP_URL . '/account';
         require __DIR__ . '/../../frontend/views/pages/login.php';

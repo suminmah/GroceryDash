@@ -1,5 +1,30 @@
 <?php
 // frontend/views/admin/dashboard.php
+
+// 1. Ensure the session state is initialized
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 2. Authorization Guard: Ensure user is logged in AND is an admin
+if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
+    // If a user tries to access this page unlawfully, clear any invalid session data and redirect
+    $_SESSION = [];
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_destroy();
+    }
+    
+    // Send them back to the login page with a clean state
+    header("Location: " . APP_URL . "/login");
+    exit;
+}
+
+// 3. Clear browser history cache for this view
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+
 $pageTitle = 'Admin Dashboard';
 $icon = 'tachometer-alt';
 

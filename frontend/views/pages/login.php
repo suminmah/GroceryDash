@@ -1,5 +1,23 @@
 <?php
 // frontend/views/pages/login.php
+
+// 1. Ensure the session is started (if your bootstrap/router hasn't started it yet)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 2. Prevent browser caching so the back button forces a fresh server check
+header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1
+header("Pragma: no-cache"); // HTTP 1.0
+header("Expires: 0"); // Proxies
+
+// 3. Check if the user is already logged in.
+if (isset($_SESSION['id'])) {
+    $redirectUrl = $_GET['redirect'] ?? APP_URL . '/account/orders';
+    header("Location: " . $redirectUrl);
+    exit;
+}
+
 $pageTitle = 'Sign In — GroceryDash';
 $error = null;
 require __DIR__ . '/../layouts/header.php';
