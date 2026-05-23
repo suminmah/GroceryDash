@@ -136,11 +136,12 @@ class ShopController
      */
     public function search()
     {
-        $query    = trim($_GET['q'] ?? '');
+        $query    = isset($_GET['q']) ? trim($_GET['q']) : '';
+        
         $products = $query ? $this->products->search($query) : [];
         $pageTitle = $query
-            ? "Search results for \"" . htmlspecialchars($query, ENT_QUOTES) . "\" — FreshCart"
-            : 'Search — FreshCart';
+            ? "Search results for \"" . htmlspecialchars($query, ENT_QUOTES) . "\" — GroceryDash"
+            : 'Search — GroceryDash';
 
         require __DIR__ . '/../../frontend/views/pages/search.php';
     }

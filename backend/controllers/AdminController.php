@@ -37,6 +37,7 @@ class AdminController
         $this->inventory  = new InventoryModel();
         $this->slots      = new DeliverySlotModel();
         $this->users      = new UserModel();
+        require_once __DIR__ . '/../models/Setting.php';
         $this->settings   = new Setting($dbConnection = Database::connect());
     }
 
@@ -427,34 +428,34 @@ class AdminController
 
     /** GET /admin/settings/logo */
     public function logoForm() {
-        // Authenticate as admin (similar to your dashboard guard)
+        // 1. Session & Admin Security Check
         if (session_status() === PHP_SESSION_NONE) session_start();
+    
+        // Authenticate as admin (matching your exact working dashboard guard structure)
         if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
             header("Location: " . APP_URL . "/login");
             exit;
         }
 
+        $pageTitle = 'Logo Settings'; 
         $error = flash('logo_error');
         $success = flash('logo_success');
         
-        // Fetch the raw value saved inside your database
+        // Fetch the raw value saved inside your database settings model
         $savedLogo = $this->settings->get('site_logo');
+        $currentLogo = !empty($savedLogo) ? $savedLogo : APP_URL . '/assets/images/logo.png'; 
 
-        // Clean up the URL format to make sure it includes the directory root
-        if (!empty($savedLogo)) {
-            $currentLogo = $savedLogo;
-        } else {
-            // Hardcoded fallback relative path matching your project structure
-            $currentLogo = '/grocery-shop/public/assets/images/logo.png'; 
-        }
+        ob_start();
+        require __DIR__ . '/../../frontend/views/admin/logo-settings.php'; 
+        $content = ob_get_clean();
 
-        require __DIR__ . '/../../frontend/views/admin/logo-settings.php';
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     /** POST /admin/settings/logo */
     public function updateLogo() {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        verifyCsrf(); // Ensure your CSRF helper runs here
+        verifyCsrf(); // CSRF Guard block validation pass check execution
 
         if (!isset($_FILES['logo']) || $_FILES['logo']['error'] === UPLOAD_ERR_NO_FILE) {
             flash('logo_error', 'Please select a valid image file to upload.');
@@ -463,20 +464,19 @@ class AdminController
 
         $file = $_FILES['logo'];
         
-        // 1. Validate File Errors
         if ($file['error'] !== UPLOAD_ERR_OK) {
             flash('logo_error', 'An error occurred during file upload.');
             redirect(APP_URL . '/admin/settings/logo');
         }
 
-        // 2. Validate File Size (e.g., max 2MB)
+        // Limit maximum size threshold boundaries securely (2MB Max capacity check)
         $maxSize = 2 * 1024 * 1024; 
         if ($file['size'] > $maxSize) {
             flash('logo_error', 'File size exceeds the 2MB limit.');
             redirect(APP_URL . '/admin/settings/logo');
         }
 
-        // 3. Validate File Type / Extension
+        // Validation against MIME mapping variants layout
         $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($file['tmp_name']);
@@ -486,24 +486,21 @@ class AdminController
             redirect(APP_URL . '/admin/settings/logo');
         }
 
-        // 4. Setup Upload Paths
         $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'logo_' . time() . '.' . $ext; // Unique name to prevent browser caching issues
+        $filename = 'logo_' . time() . '.' . $ext; 
         $uploadDir = __DIR__ . '/../../public/uploads/logo/';
 
-        // Ensure directory exists
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
 
         $destination = $uploadDir . $filename;
 
-        // 5. Move File and Save to Database
         if (move_uploaded_file($file['tmp_name'], $destination)) {
             $relativeUrlPath = APP_URL . '/uploads/logo/' . $filename;
             
-            // Update your database setting here
-            // Example: $this->settings->update('site_logo', $relativeUrlPath);
+            // Connect and commit update to your app setup configuration schema safely
+            $this->settings->set('site_logo', $relativeUrlPath);
             
             flash('logo_success', 'Website logo updated successfully!');
         } else {

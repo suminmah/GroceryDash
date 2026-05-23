@@ -186,19 +186,18 @@ class ProductModel
     public function search(string $query): array
     {
         $stmt = $this->db->prepare(
-            "SELECT  p.id AS product_id, p.name, p.sku, p.price,
+            "SELECT  p.id AS product_id, p.name, p.price,
                      c.name AS category_name,
                      COALESCE(i.quantity, 0) AS stock_qty
              FROM    Products   p
              JOIN    Categories c  ON c.id = p.category_id
              LEFT    JOIN Inventory i ON i.product_id  = p.id
              WHERE   p.name LIKE :q
-             OR      p.sku  LIKE :q2
              ORDER   BY p.name ASC
              LIMIT   20"
         );
         $like = '%' . $query . '%';
-        $stmt->execute([':q' => $like, ':q2' => $like]);
+        $stmt->execute([':q' => $like]);
         return $stmt->fetchAll();
     }
 
