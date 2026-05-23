@@ -8,7 +8,7 @@ require __DIR__ . '/../layouts/header.php';
 ?>
 <div class="auth-wrap">
   <div class="auth-card">
-    <h2>Create Account 🛒</h2>
+    <h2>Create Account</h2>
     <p style="color:#777;margin-bottom:1.5rem">Join GroceryDash for faster checkout and order tracking.</p>
 
     <?php if ($error): ?>
@@ -16,7 +16,7 @@ require __DIR__ . '/../layouts/header.php';
     <?php endif; ?>
 
     <form method="POST" action="<?= APP_URL ?>/register">
-      <input type="hidden" name="_token" value="<?= csrfToken() ?>">
+      <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
 
       <div class="form-group">
         <label for="name">Full Name</label>
@@ -41,7 +41,9 @@ require __DIR__ . '/../layouts/header.php';
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Create Account</button>
+      </div>
     </form>
 
     <p style="text-align:center;margin-top:1rem">
