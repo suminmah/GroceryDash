@@ -33,7 +33,7 @@ if (!isset($currentLogo)) {
 
     <div class="card shadow-sm border-0 rounded-4 p-4" style="background:#fff; border-radius:12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width:600px;">
         <div class="current-logo-section" style="margin-bottom:2rem; text-align:center; padding:1.5rem; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;">
-            <h6 style="margin-bottom:1rem; font-size:0.85rem; color:#6b7280; font-weight:700; text-transform:uppercase; tracking-wider: 0.05em;">Active Logo Preview</h6>
+            <h6 style="margin-bottom:1rem; font-size:0.85rem; color:#6b7280; font-weight:700; text-transform:uppercase;">Active Logo Preview</h6>
             
             <?php 
                 // Resolve URL routing correctly

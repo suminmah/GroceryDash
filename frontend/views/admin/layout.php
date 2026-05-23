@@ -55,9 +55,9 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], 'slots') ? 'active bg-success text-white' : 'text-dark' ?>" 
+                    <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], 'admin/slots') ? 'active bg-success text-white' : 'text-dark' ?>" 
                        href="<?= APP_URL ?>/admin/slots">
-                        <i class="bi bi-calendar-clock"></i> Delivery Slots
+                        <i class="bi bi-calendar"></i> Delivery Slots
                     </a>
                 </li>
                 <li class="nav-item">
