@@ -28,6 +28,18 @@ require_once __DIR__ . '/../../../backend/models/Category.php';
 $pageTitle  = $pageTitle  ?? 'GroceryDash — Fresh Grocery Delivered Fast';
 $cartCount  = cartCount();
 $categories = $categories ?? (new Category())->getAll();
+
+// if(!isset($wishlistProductIds)) {
+//   require_once __DIR__ . '/../../../backend/controllers/WishlistController.php';
+//   $wishlistModel = new WishlistModel();
+//   $wishlistProductIds = [];
+
+//   if (isset($_SESSION['user']['id'])) {
+//     $wishlistProductIds = $wishlistModel->getProductIds((int) $_SESSION['user']['id']);
+//   } elseif (isset($_SESSION['user_id'])) {
+//     $wishlistProductIds = $wishlistModel->getProductIds((int) $_SESSION['user_id']);
+//   }
+// }
 ?>
 
 <!DOCTYPE html>
@@ -37,29 +49,20 @@ $categories = $categories ?? (new Category())->getAll();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= e($pageTitle) ?></title>
   <meta name="description" content="Order fresh groceries online and get them delivered in 30 minutes. Best prices, widest selection.">
-  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
-  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/user-order.css">
-  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/admin.css">
-  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/admin-orders.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  
+  <link rel="stylesheet" href="/grocery-shop/public/assets/css/style.css">
+  <link rel="stylesheet" href="/grocery-shop/public/assets/css/user-order.css">
+  <link rel="stylesheet" href="/grocery-shop/public/assets/css/admin.css">
+  <!-- <link rel="stylesheet" href="/grocery-shop/public/assets/css/admin-orders.css"> -->
+  
+  <aria-preconnect href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> -->
 </head>
 <body>
 
-<!-- ═══ TOPBAR ═══════════════════════════════════════════ -->
-<!-- <div class="topbar">
-  <span>🚚 Free delivery on orders above <?= formatPrice(FREE_DELIVERY_THRESHOLD) ?></span>
-  <span>📞 +977-1-4000000</span>
-</div> -->
-
-<!-- ═══ HEADER ════════════════════════════════════════════ -->
 <header class="site-header">
   <div class="container header-inner">
 
-    <!-- Logo -->
     <a href="<?= APP_URL ?>/" class="logo d-inline-flex align-items-center text-decoration-none">
       <?php if (!empty($headerLogoUrl)): ?>
         <img src="<?= htmlspecialchars($headerLogoUrl) ?>" 
@@ -73,7 +76,6 @@ $categories = $categories ?? (new Category())->getAll();
       <?php endif; ?>
     </a>
 
-    <!-- Search -->
     <form class="search-form" action="<?= APP_URL ?>/search" method="GET" role="search">
       <select name="category" class="search-cat" aria-label="Category">
         <option value="">All</option>
@@ -94,7 +96,6 @@ $categories = $categories ?? (new Category())->getAll();
       </button>
     </form>
 
-    <!-- Header actions -->
     <nav class="header-actions">
       <?php if (isLoggedIn()): ?>
         <a href="<?= APP_URL ?>/account/orders" class="action-btn">
@@ -111,14 +112,23 @@ $categories = $categories ?? (new Category())->getAll();
       <a href="<?= APP_URL ?>/cart" class="action-btn cart-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" align="right"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <span>Cart</span>
-        <span class="cart-badge" id="cartBadge" <?= $cartCount === 0 ? 'style="display:"' : '' ?>>
+        <span class="cart-badge" id="cartBadge" <?= $cartCount === 0 ? 'style="display:none;"' : '' ?>>
           <?= $cartCount ?>
         </span>
+      </a>
+
+      <a href="<?= APP_URL ?>/account/wishlist" class="action-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06
+                  a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78
+                  1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span>Wishlist</span>
       </a>
     </nav>
   </div>
 
-  <!-- ─── Nav bar ─── -->
   <nav class="main-nav" aria-label="Main navigation">
     <div class="container nav-inner">
       <button class="nav-toggle" id="navToggle" aria-label="Menu">☰ Categories</button>
@@ -146,7 +156,6 @@ $categories = $categories ?? (new Category())->getAll();
   </nav>
 </header>
 
-<!-- Flash messages -->
 <?php if ($msg = flash('success')): ?>
   <div class="flash flash-success" role="alert"><?= e($msg) ?> <button onclick="this.parentElement.remove()">✕</button></div>
 <?php endif; ?>

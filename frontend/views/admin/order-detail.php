@@ -1,7 +1,5 @@
 <?php $pageTitle = $pageTitle ?? 'Order Detail'; 
 
-require __DIR__ . '/../layouts/header.php'; 
-
 $order = $order ?? []; ?>
 
 <h1>Order #<?= $order['id'] ?? 'N/A' ?></h1>
@@ -25,4 +23,3 @@ $order = $order ?? []; ?>
     </select>
     <button type="submit">Update Status</button>
 </form>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>

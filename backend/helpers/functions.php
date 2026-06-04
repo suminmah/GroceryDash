@@ -105,15 +105,19 @@ function csrfToken(): string {
 }
 
 function verifyCsrf() {
+    $postedToken = $_POST['csrf_token'] ??  '';
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+
     if (
-        empty($_POST['csrf_token']) ||
-        empty($_SESSION['csrf_token']) ||
-        !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+        empty($postedToken) ||
+        empty($sessionToken) ||
+        !hash_equals($sessionToken, $postedToken)
     ) {
         http_response_code(419);
-        die('Invalid CSRF token.');
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Invalid or expired security token.']);
+        exit;
     }
-    unset($_SESSION['csrf_token']);
 }
 
 /**

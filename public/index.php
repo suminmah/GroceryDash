@@ -9,6 +9,7 @@ require_once __DIR__ . '/../backend/controllers/AdminController.php';
 require_once __DIR__ . '/../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../backend/controllers/OrderController.php';
 require_once __DIR__ . '/../backend/models/Category.php';
+require_once __DIR__ . '/../backend/controllers/WishlistController.php';
 
 session_set_cookie_params([
     'lifetime' => 0,
@@ -20,6 +21,10 @@ session_set_cookie_params([
 ]);
 session_name(SESSION_NAME);
 session_start();
+
+if (function_exists('csrfToken')) {
+    csrfToken(); // Ensure CSRF token is generated for the session
+}
 
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -71,7 +76,11 @@ if ($method === 'GET') {
     elseif ($uri === '/offers')                                         { (new ShopController())->offers(); }
     elseif ($uri === '/checkout')                                     { (new CheckoutController())->form(); }
     elseif (match_route($uri, '/order/confirmation/{id}', $params))  { (new CheckoutController())->confirmation((int) $params['id']); }
-    elseif (match_route($uri, '/order/track/{id}', $params))         { (new CheckoutController())->track((int) $params['id']); }
+    elseif (match_route($uri, '/order/track/{id}', $params)) {
+    // Dynamically instantiate your order processing layer
+    require_once __DIR__ . '/../backend/controllers/OrderController.php';
+    (new OrderController())->track($params['id']);
+    }
     elseif ($uri === '/account/orders')                               { (new CheckoutController())->myOrders(); }
     elseif (match_route($uri, '/account/orders/{id}', $params))      { (new OrderController())->orderDetail((int) $params['id']); }
     elseif ($uri === '/login')                                        { (new AuthController())->loginForm(); }
@@ -92,6 +101,11 @@ if ($method === 'GET') {
     elseif ($uri === '/admin/categories')                             { (new AdminController())->categoriesList(); }
     elseif ($uri === '/admin/customers')                              { (new AdminController())->customersList(); }
     elseif ($uri === '/admin/settings/logo')                          { (new AdminController())->logoForm(); }
+    elseif ($uri === '/account/wishlist')                               { (new WishlistController())->index(); }
+    elseif ($uri === '/csrf-token') {
+        header('Content-Type: application/json');
+        echo json_encode(['token' => csrfToken()]);
+    }
     else { http_response_code(404); require __DIR__ . '/../frontend/views/errors/404.php'; }
 
 } elseif ($method === 'POST') {
@@ -112,5 +126,6 @@ if ($method === 'GET') {
     elseif (match_route($uri, '/admin/slots/{id}/delete', $params))        { (new AdminController())->slotDelete((int) $params['id']); }
     elseif ($uri === '/admin/categories')                                   { (new AdminController())->categoryCreate(); }
     elseif ($uri === '/admin/settings/logo')                                { (new AdminController())->updateLogo(); }
+    elseif ($uri === '/wishlist/toggle') { (new WishlistController())->toggle(); }
     else { http_response_code(405); echo 'Method not allowed.'; }
 } else { http_response_code(405); echo 'Method not allowed.'; }

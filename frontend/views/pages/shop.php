@@ -14,43 +14,79 @@ require __DIR__ . '/../layouts/header.php';
   <div class="container shop-layout">
 
     <!-- ─── Sidebar filters ─── -->
-    <aside class="shop-sidebar">
-      <form method="GET" action="<?= APP_URL ?>/shop" id="filterForm">
+    <aside class="shop-sidebar" style="background: #ffffff; border: 1px solid #eef1f0; border-radius: 12px; padding: 1.25rem;">
+  <form method="GET" action="<?= APP_URL ?>/shop" id="filterForm">
+    
+    <input type="hidden" name="sort" value="<?= e($filters['sort'] ?? '') ?>">
+    <input type="hidden" name="search" value="<?= e($filters['search'] ?? '') ?>">
 
-        <div class="filter-group">
-          <h4>Category</h4>
-          <?php foreach ($categories as $cat): ?>
-            <label class="filter-check">
-              <input type="radio" name="category" value="<?= e($cat['slug']) ?>"
-                <?= ($filters['category'] === $cat['slug']) ? 'checked' : '' ?>
-                onchange="this.form.submit()">
-              <?= e($cat['name']) ?>
-            </label>
-          <?php endforeach; ?>
-          <?php if (isset($filters['category']) && $filters['category']): ?>
-            <a href="<?= APP_URL ?>/shop" class="clear-filter">Clear ✕</a>
-          <?php endif; ?>
-        </div>
+    <div class="filter-group" style="margin-bottom: 1.5rem; border-bottom: 1px solid #f8f9fa; padding-bottom: 1.25rem;">
+      <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #212529; display: flex; justify-content: space-between; align-items: center;">
+        <span>Category</span>
+        <?php if (!empty($filters['category'])): ?>
+          <a href="<?= APP_URL ?>/shop?<?= http_build_query(array_filter(['search' => $filters['search'] ?? '', 'sort' => $filters['sort'] ?? ''])) ?>" class="clear-filter" style="font-size: 0.75rem; color: #dc3545; text-decoration: none; font-weight: 400;">Clear ✕</a>
+        <?php endif; ?>
+      </h4>
+      
+      <div class="filter-options-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+        <?php foreach ($categories as $cat): ?>
+          <?php $isCurrentCat = ((string)($filters['category'] ?? '') === (string)$cat['slug']); ?>
+          <label class="filter-check" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: <?= $isCurrentCat ? '#198754' : '#495057' ?>; font-weight: <?= $isCurrentCat ? '600' : '400' ?>;">
+            <input type="radio" 
+                   name="category" 
+                   value="<?= e($cat['slug']) ?>"
+                   <?= $isCurrentCat ? 'checked' : '' ?>
+                   onchange="this.form.submit()"
+                   style="accent-color: #198754; cursor: pointer;">
+            <span><?= e($cat['name']) ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+    </div>
 
-        <div class="filter-group">
-          <h4>Price Range</h4>
-          <div class="price-inputs">
-            <input type="number" name="min_price" placeholder="Min"
-              value="<?= e($filters['min_price']) ?>" class="input-sm">
-            <span>–</span>
-            <input type="number" name="max_price" placeholder="Max"
-              value="<?= e($filters['max_price']) ?>" class="input-sm">
-          </div>
-          <button type="submit" class="btn btn-sm btn-outline">Apply</button>
-          <button type="button" class="btn btn-sm btn-reset" onclick="location='<?= APP_URL ?>/shop'">
-          <a>Reset</a>
-          </button>
-        </div>
+    <div class="filter-group">
+      <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #212529;">Price Range</h4>
+      
+      <div class="price-inputs" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <input type="number" 
+               name="min_price" 
+               placeholder="Min"
+               min="0"
+               value="<?= e($filters['min_price'] ?? '') ?>" 
+               class="input-sm"
+               style="width: 100%; padding: 0.375rem 0.5rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.875rem;">
+        
+        <span style="color: #6c757d;">–</span>
+        
+        <input type="number" 
+               name="max_price" 
+               placeholder="Max"
+               min="0"
+               value="<?= e($filters['max_price'] ?? '') ?>" 
+               class="input-sm"
+               style="width: 100%; padding: 0.375rem 0.5rem; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.875rem;">
+      </div>
+      
+      <div class="sidebar-actions" style="display: flex; gap: 0.5rem; width: 100%; align-items: center; justify-content: space-between; box-sizing: border-box;">
+  
+        <button type="submit" 
+                class="btn btn-sm btn-outline" 
+                style="flex: 1; height: 38px; background: #198754; color: #fff; border: 1px solid #198754; padding: 0 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1; margin: 0;">
+          Apply
+        </button>
+        
+        <button type="button" 
+                class="btn btn-sm btn-reset" 
+                onclick="window.location.href='<?= APP_URL ?>/shop'"
+                style="flex: 1; height: 38px; background: #ffffff; color: #198754; border: 1px solid #198754; padding: 0 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1; margin: 0;">
+          Reset
+        </button>
+        
+      </div>
+    </div>
 
-        <input type="hidden" name="sort" value="<?= e($filters['sort']) ?>">
-        <input type="hidden" name="search" value="<?= e($filters['search']) ?>">
-      </form>
-    </aside>
+  </form>
+</aside>
 
     <!-- ─── Product grid ─── -->
     <div class="shop-main">

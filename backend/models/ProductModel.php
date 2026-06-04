@@ -112,6 +112,7 @@ class ProductModel
                         p.slug,
                         p.name,
                         p.price,
+                        p.sale_price,
                         p.unit,
                         p.image,
                         p.is_active,
@@ -186,7 +187,7 @@ class ProductModel
     public function search(string $query): array
     {
         $stmt = $this->db->prepare(
-            "SELECT  p.id AS product_id, p.name, p.price,
+            "SELECT  p.id AS product_id, p.name, p.price, p.sale_price, p.image, p.unit,
                      c.name AS category_name,
                      COALESCE(i.quantity, 0) AS stock_qty
              FROM    Products   p

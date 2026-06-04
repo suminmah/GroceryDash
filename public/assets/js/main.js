@@ -1,4 +1,4 @@
-// public/assets/js/main.js — FreshCart client-side logic
+// public/assets/js/main.js — GroceryDash client-side logic
 
 const APP_URL = document.querySelector('meta[name="app-url"]')?.content
   || window.location.origin + '/grocery-shop/public';
@@ -41,42 +41,55 @@ function showToast(message, type = 'success') {
 
 /* ── Add to Cart ──────────────────────────────────────── */
 document.addEventListener('click', async (e) => {
-  const btn = e.target.closest('.js-add-to-cart');
+  // 1. ABSOLUTE GUARD CLAUSE: If clicking the heart button or its inner text, kill EVERYTHING else instantly
+  if (e.target.closest('.wishlist-btn')) {
+    e.stopImmediatePropagation();
+    return;
+  }
+  
+  // 2. Safely support both potential class names you used across scripts (.js-add-to-cart and .btn-add-cart)
+  const btn = e.target.closest('.js-add-to-cart') || e.target.closest('.btn-add-cart');
   if (!btn) return;
+
+  // 3. Ensure we didn't just target a disabled native placeholder button
+  if (btn.hasAttribute('disabled')) return;
+
+  // Prevent default submit behaviors if it happens to be wrapped inside an native HTML form tag
+  e.preventDefault();
 
   const productId = btn.dataset.productId;
   const csrf      = btn.dataset.csrf;
 
-  // Quantity from linked input (product detail page)
   let quantity = 1;
   if (btn.dataset.qtyInput) {
     quantity = parseInt(document.getElementById(btn.dataset.qtyInput)?.value) || 1;
   }
 
   btn.disabled = true;
+  const originalText = btn.textContent;
   btn.textContent = 'Adding…';
 
   try {
     const res  = await fetch(`${APP_URL}/cart/add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ product_id: productId, quantity, _token: csrf }),
+      body: new URLSearchParams({ product_id: productId, quantity, csrf_token: csrf }),
     });
     const data = await res.json();
 
     if (data.success) {
-      updateCartBadges(data.cart_count);
-      showToast(data.message || 'Added to cart!');
+      if (typeof updateCartBadges === 'function') updateCartBadges(data.cart_count);
+      if (typeof showToast === 'function') showToast(data.message || 'Added to cart!');
       btn.textContent = '✓ Added!';
-      setTimeout(() => { btn.textContent = '+ Add to Cart'; btn.disabled = false; }, 1500);
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1500);
     } else {
-      showToast(data.message || 'Could not add to cart.', 'error');
-      btn.textContent = '+ Add to Cart';
+      if (typeof showToast === 'function') showToast(data.message || 'Could not add to cart.', 'error');
+      btn.textContent = originalText;
       btn.disabled = false;
     }
   } catch {
-    showToast('Network error. Please try again.', 'error');
-    btn.textContent = '+ Add to Cart';
+    if (typeof showToast === 'function') showToast('Network error. Please try again.', 'error');
+    btn.textContent = originalText;
     btn.disabled = false;
   }
 });
@@ -100,7 +113,7 @@ document.addEventListener('click', async (e) => {
     const res  = await fetch(`${APP_URL}/cart/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ product_id: productId, quantity: qty, _token: csrf }),
+      body: new URLSearchParams({ product_id: productId, quantity: qty, csrf_token: csrf }),
     });
     const data = await res.json();
     if (data.success) {
@@ -131,7 +144,7 @@ document.addEventListener('click', async (e) => {
     const res  = await fetch(`${APP_URL}/cart/remove`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ product_id: productId, _token: csrf }),
+      body: new URLSearchParams({ product_id: productId, csrf_token: csrf }),
     });
     const data = await res.json();
     if (data.success) {
@@ -195,5 +208,69 @@ if (searchInput) {
   });
 }
 
-console.log('%c🛒 FreshCart', 'color:#2D8C4E;font-weight:700;font-size:1.2rem');
+window.APP_URL = window.APP_URL || "<?= APP_URL ?>"; // fallback for inline scripts that need it
+
+document.addEventListener('click', async function (e) {
+    const btn = e.target.closest('.wishlist-btn');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const productId = btn.dataset.productId;
+    const csrfToken = btn.dataset.csrf;   // the token from HTML attribute
+
+    if (!productId || productId === "0") {
+        console.error("Invalid product ID");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
+    const formData = new FormData();
+    formData.append('product_id', productId);
+    formData.append('csrf', csrfToken);   // only send 'csrf' – matches controller
+
+    try {
+        const response = await fetch(`${window.APP_URL}/wishlist/toggle`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (data.redirect) {
+            window.location.href = data.redirect;
+            return;
+        }
+
+        if (data.success) {
+            const isWishlistPage = window.location.pathname.includes('/account/wishlist');
+
+            if (isWishlistPage && !data.wishlisted) {
+                // Remove the entire product card
+                const card = btn.closest('.product-card');
+                if (card) {
+                    card.remove();
+                    if (!document.querySelector('.product-card')) {
+                        location.reload(); // show empty state
+                    }
+                }
+            } else {
+                // Toggle heart on product listing pages
+                btn.innerHTML = data.wishlisted ? '❤️' : '🤍';
+                btn.classList.toggle('wishlisted', data.wishlisted);
+            }
+        } else {
+            alert("Error: " + (data.message || "Could not update wishlist"));
+        }
+    } catch (error) {
+        console.error("Wishlist AJAX error:", error);
+        alert("Network error. Please try again.");
+    } finally {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    }
+});
 

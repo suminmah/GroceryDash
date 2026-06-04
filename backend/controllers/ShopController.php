@@ -33,13 +33,18 @@ class ShopController
     public function home()
     {
         // 8 newest products as "featured" (no is_featured column in schema)
-        $featured   = $this->products->getAll([], 1);  // first 12, tweak if needed
-        $featured   = array_slice($featured, 0, 8);
-
+        $featured   = array_slice($this->products->getAll([], 1), 0, 8);
         $rootCats   = $this->categories->getRootCategories();
+        $pageTitle  = 'GroceryDash — Fresh Grocery Delivered Fast';
 
-        $pageTitle  = 'FreshCart — Fresh Grocery Delivered Fast';
-
+        $wishlistedIds = [];
+        if (isLoggedIn()) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            $wishlistModel = (new WishlistModel())->getProductIds(
+                (int) $_SESSION['user']['id']
+            );
+            $wishlistedIds = $wishlistModel;
+        }
         require __DIR__ . '/../../frontend/views/pages/home.php';
     }
 
@@ -122,7 +127,7 @@ class ShopController
         // Live inventory data
         $inventory = $this->inventory->findByProductId($productId);
 
-        $pageTitle = htmlspecialchars($product['name'], ENT_QUOTES) . ' — FreshCart';
+        $pageTitle = htmlspecialchars($product['name'], ENT_QUOTES) . ' — GroceryDash';
 
         require __DIR__ . '/../../frontend/views/pages/product.php';
     }
@@ -171,7 +176,7 @@ class ShopController
         $breadcrumb = $this->categories->getBreadcrumb($categoryId);
         $subCats    = $this->categories->getSubCategories($categoryId);
 
-        $pageTitle  = htmlspecialchars($category['name'], ENT_QUOTES) . ' — FreshCart';
+        $pageTitle  = htmlspecialchars($category['name'], ENT_QUOTES) . ' — GroceryDash';
 
         require __DIR__ . '/../../frontend/views/pages/category.php';
     }
