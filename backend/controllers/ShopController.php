@@ -34,16 +34,17 @@ class ShopController
     {
         // 8 newest products as "featured" (no is_featured column in schema)
         $featured   = array_slice($this->products->getAll([], 1), 0, 8);
-        $rootCats   = $this->categories->getRootCategories();
+        $categories   = $this->categories->getRootCategories();
         $pageTitle  = 'GroceryDash — Fresh Grocery Delivered Fast';
 
         $wishlistedIds = [];
+
         if (isLoggedIn()) {
             require_once __DIR__ . '/../models/WishlistModel.php';
-            $wishlistModel = (new WishlistModel())->getProductIds(
-                (int) $_SESSION['user']['id']
-            );
-            $wishlistedIds = $wishlistModel;
+
+            $wishlistModel = new WishlistModel();
+                
+            $wishlistedIds = $wishlistModel->getWishlistedProductIds((int) $_SESSION['user']['id']);
         }
         require __DIR__ . '/../../frontend/views/pages/home.php';
     }

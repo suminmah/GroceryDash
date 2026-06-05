@@ -36,12 +36,14 @@ $escapedId = htmlspecialchars((string)$productId, ENT_QUOTES, 'UTF-8');
 
     <button type="button"
             class="wishlist-btn <?= $isFav ? 'wishlisted' : '' ?>"
-            data-product-id="<?= $escapedId ?>"
-            data-csrf="<?= csrfToken() ?>"
-            data-remove-card="product-card-<?= $escapedId ?>"
-            title="Toggle Wishlist"
-            style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #eee; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 0; margin: 0; outline: none;">
-         <?= $isFav ? '❤️' : '🤍' ?>
+            id="wishlist-btn-<?= $escapedId ?>"
+             data-product-id="<?= $escapedId ?>"
+             data-csrf="<?= csrfToken() ?>"
+             data-remove-card="product-card-<?= $escapedId ?>"
+             title="Toggle Wishlist"
+             aria-label="Toggle Wishlist"
+             style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #eee; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 3; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 0;">
+         <span class="a11y_contrast"><?= $isFav ? '❤️' : '🤍' ?></span>
     </button>
 
     <a href="<?= APP_URL ?>/product/<?= $escapedId ?>" class="product-img-link" style="text-align: center; display: block; padding-top: 15px; margin-bottom: 1rem;">

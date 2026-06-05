@@ -828,11 +828,20 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform .15s ease;
+    transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .wishlist-btn:hover   { transform: scale(1.15); }
 .wishlist-btn.loading { opacity: .5; pointer-events: none; }
+
+.wishlist-btn:active {
+    transform: scale(0.9);
+}
+
+.wishlist-btn.wishlisted {
+    background-color: #fff3f5 !important;
+    border-color: #dc3545 !important;
+}
 
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 900px) {

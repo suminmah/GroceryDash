@@ -110,13 +110,11 @@ $wishlistedIds = $wishlistedIds ?? [];
 
             <button
               type="button"
-              class="wishlist-btn <?= (isset($product['product_id']) && in_array($product['product_id'], $wishlistedIds ?? [])) ? 'wishlisted' : '' ?>"
-              data-product-id="<?= $productId ?>"
-              data-csrf="<?= csrfToken() ?>"
-              title="Add to wishlist"
-              aria-label="Toggle wishlist"
-              style="background: none; border: none; cursor: pointer; font-size: 1.25rem; transition: transform 0.2s;">
-              <?= (isset($product['product_id']) && in_array($product['product_id'], $wishlistedIds ?? [])) ? '❤️' : '🤍' ?>
+              class="wishlist-btn <?= (in_array($productId, $wishlistedIds ?? [])) ? 'wishlisted' : '' ?>"
+              data-product-id="<?= (int)$productId ?>"
+              data-csrf="<?= e(csrfToken()) ?>"
+              aria-label="Toggle wishlist">
+              <?= in_array($productId, $wishlistedIds) ? '❤️' : '🤍' ?>
             </button>
           </div> <div class="product-info" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end;">
             <h3 class="product-name" style="font-size: 1rem; margin: 0 0 0.25rem 0; line-height: 1.4;">

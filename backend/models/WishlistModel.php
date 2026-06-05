@@ -1,4 +1,5 @@
 <?php
+// backend/models/WishlistModel.php
 require_once __DIR__ . '/../config/database.php';
 
 class WishlistModel
@@ -10,61 +11,66 @@ class WishlistModel
         $this->db = Database::connect();
     }
 
+    /**
+     * Fetch all product items wishlisted by a specific user profile
+     */
     public function getByUser(int $userId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT w.id, w.product_id, w.created_at,
-                    p.name, p.slug, p.price, p.sale_price,
-                    p.image, p.unit, p.stock
-             FROM   wishlists w
-             JOIN   products  p ON p.id = w.product_id
-             WHERE  w.user_id = :uid
-             ORDER  BY w.created_at DESC"
+            "SELECT w.id AS wishlist_id, w.product_id, w.created_at,
+                    p.name, p.slug, p.price, p.sale_price, p.image, p.stock
+             FROM wishlists w
+             INNER JOIN products p ON p.id = w.product_id
+             WHERE w.user_id = :uid
+             ORDER BY w.created_at DESC"
         );
-        $stmt->execute(['uid' => $userId]);
-        return $stmt->fetchAll();
+        $stmt->execute([':uid' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Extract a flat array containing only product IDs wishlisted by a user
+     */
+    public function getWishlistedProductIds(int $userId): array
+    {
+        $stmt = $this->db->prepare("SELECT product_id FROM wishlists WHERE user_id = :uid");
+        $stmt->execute([':uid' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Add product item to user's collection safely
+     */
     public function add(int $userId, int $productId): bool
     {
-        if ($this->isWishlisted($userId, $productId)) {
-            return true;
-        }
-
-        try {
-            $stmt = $this->db->prepare(
-                "INSERT INTO wishlists (user_id, product_id, created_at) VALUES (:uid, :pid, NOW())"
-            );
-            return $stmt->execute(['uid' => $userId, 'pid' => $productId]);
-        } catch (PDOException $e) {
-            // ✅ Re-throw exception so controller can handle it
-            throw new Exception("Database error: " . $e->getMessage());
-        }
+        $stmt = $this->db->prepare(
+            "INSERT INTO wishlists (user_id, product_id, created_at) 
+             VALUES (:uid, :pid, NOW())
+             ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)"
+        );
+        return $stmt->execute([':uid' => $userId, ':pid' => $productId]);
     }
 
+    /**
+     * Remove item execution
+     */
     public function remove(int $userId, int $productId): bool
     {
         $stmt = $this->db->prepare(
             "DELETE FROM wishlists WHERE user_id = :uid AND product_id = :pid"
         );
-        return $stmt->execute(['uid' => $userId, 'pid' => $productId]);
+        return $stmt->execute([':uid' => $userId, ':pid' => $productId]);
     }
 
+    /**
+     * Conditional Boolean Verification
+     */
     public function isWishlisted(int $userId, int $productId): bool
     {
         $stmt = $this->db->prepare(
-            "SELECT COUNT(*) FROM wishlists WHERE user_id = :uid AND product_id = :pid"
+            "SELECT 1 FROM wishlists WHERE user_id = :uid AND product_id = :pid LIMIT 1"
         );
-        $stmt->execute(['uid' => $userId, 'pid' => $productId]);
-        return (int) $stmt->fetchColumn() > 0;
-    }
-
-    public function getProductIds(int $userId): array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT product_id FROM wishlists WHERE user_id = :uid"
-        );
-        $stmt->execute(['uid' => $userId]);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt->execute([':uid' => $userId, ':pid' => $productId]);
+        return (bool) $stmt->fetchColumn();
     }
 }

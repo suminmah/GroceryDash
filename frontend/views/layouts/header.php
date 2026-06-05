@@ -29,17 +29,6 @@ $pageTitle  = $pageTitle  ?? 'GroceryDash — Fresh Grocery Delivered Fast';
 $cartCount  = cartCount();
 $categories = $categories ?? (new Category())->getAll();
 
-// if(!isset($wishlistProductIds)) {
-//   require_once __DIR__ . '/../../../backend/controllers/WishlistController.php';
-//   $wishlistModel = new WishlistModel();
-//   $wishlistProductIds = [];
-
-//   if (isset($_SESSION['user']['id'])) {
-//     $wishlistProductIds = $wishlistModel->getProductIds((int) $_SESSION['user']['id']);
-//   } elseif (isset($_SESSION['user_id'])) {
-//     $wishlistProductIds = $wishlistModel->getProductIds((int) $_SESSION['user_id']);
-//   }
-// }
 ?>
 
 <!DOCTYPE html>

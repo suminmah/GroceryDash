@@ -109,15 +109,10 @@ function verifyCsrf() {
     $sessionToken = $_SESSION['csrf_token'] ?? '';
 
     if (
-        empty($postedToken) ||
-        empty($sessionToken) ||
-        !hash_equals($sessionToken, $postedToken)
-    ) {
-        http_response_code(419);
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'Invalid or expired security token.']);
-        exit;
+        empty($postedToken) ||  empty($sessionToken)){
+            return false;
     }
+    return hash_equals($sessionToken, $postedToken);
 }
 
 /**

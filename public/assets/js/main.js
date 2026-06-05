@@ -208,69 +208,83 @@ if (searchInput) {
   });
 }
 
-window.APP_URL = window.APP_URL || "<?= APP_URL ?>"; // fallback for inline scripts that need it
+document.addEventListener('DOMContentLoaded', () => {
+    // Globally register an efficient, single Event Delegation structural interceptor pattern listener
+    document.body.addEventListener('click', async function (event) {
+        const targetButton = event.target.closest('.wishlist-btn');
+        if (!targetButton) return;
 
-document.addEventListener('click', async function (e) {
-    const btn = e.target.closest('.wishlist-btn');
-    if (!btn) return;
+        event.preventDefault();
+        event.stopPropagation();
 
-    e.preventDefault();
-    e.stopPropagation();
+        const productId = targetButton.dataset.productId;
+        const tokenValue = targetButton.dataset.csrf;
 
-    const productId = btn.dataset.productId;
-    const csrfToken = btn.dataset.csrf;   // the token from HTML attribute
-
-    if (!productId || productId === "0") {
-        console.error("Invalid product ID");
-        return;
-    }
-
-    btn.disabled = true;
-    btn.style.opacity = "0.5";
-
-    const formData = new FormData();
-    formData.append('product_id', productId);
-    formData.append('csrf', csrfToken);   // only send 'csrf' – matches controller
-
-    try {
-        const response = await fetch(`${window.APP_URL}/wishlist/toggle`, {
-            method: 'POST',
-            body: formData
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-
-        if (data.redirect) {
-            window.location.href = data.redirect;
+        if (!productId || !tokenValue) {
+            console.error('Critical operational failure: Missing element context dataset definitions.');
             return;
         }
 
-        if (data.success) {
-            const isWishlistPage = window.location.pathname.includes('/account/wishlist');
+        // Apply visual throttling interface locks to isolate atomic mutations 
+        targetButton.style.opacity = '0.4';
+        targetButton.style.pointerEvents = 'none';
 
-            if (isWishlistPage && !data.wishlisted) {
-                // Remove the entire product card
-                const card = btn.closest('.product-card');
-                if (card) {
-                    card.remove();
-                    if (!document.querySelector('.product-card')) {
-                        location.reload(); // show empty state
+        try {
+            const endpointResponse = await fetch('/grocery-shop/public/wishlist/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `product_id=${encodeURIComponent(productId)}&csrf_token=${encodeURIComponent(tokenValue)}`
+            });
+
+            // Handle unauthenticated user pathing interception triggers
+            if (endpointResponse.status === 401) {
+                const unauthorizedPayload = await endpointResponse.json();
+                window.location.href = unauthorizedPayload.redirect || '/login';
+                return;
+            }
+
+            // Capture functional bad requests or token validations blocks
+            if (!endpointResponse.ok) {
+                const errorPayload = await endpointResponse.status === 419 
+                    ? { message: "Session expired. Please reload your document view windows." } 
+                    : await endpointResponse.json();
+                throw new Error(errorPayload.message || `System communication status error exception: ${endpointResponse.status}`);
+            }
+
+            const operationDataResult = await endpointResponse.json();
+
+            if (operationDataResult.success) {
+                // Mutate target state values visually
+                targetButton.innerHTML = operationDataResult.wishlisted ? '❤️' : '🤍';
+                targetButton.classList.toggle('wishlisted', operationDataResult.wishlisted);
+
+                // Handle item card destruction animation rules if evaluating removal directly inside Wishlist page grid
+                const evaluationCardNodeKeyId = targetButton.dataset.removeCard;
+                if (evaluationCardNodeKeyId && !operationDataResult.wishlisted) {
+                    const targetDOMCardElement = document.getElementById(evaluationCardNodeKeyId);
+                    if (targetDOMCardElement) {
+                        targetDOMCardElement.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                        targetDOMCardElement.style.opacity = '0';
+                        targetDOMCardElement.style.transform = 'scale(0.9)';
+                        
+                        setTimeout(() => {
+                            targetDOMCardElement.remove();
+                            // If grid becomes empty, force layout refresh view state loop
+                            if (!document.querySelector('.product-card')) {
+                                window.location.reload();
+                            }
+                        }, 300);
                     }
                 }
-            } else {
-                // Toggle heart on product listing pages
-                btn.innerHTML = data.wishlisted ? '❤️' : '🤍';
-                btn.classList.toggle('wishlisted', data.wishlisted);
             }
-        } else {
-            alert("Error: " + (data.message || "Could not update wishlist"));
+        } catch (runtimeNetworkExceptionError) {
+            console.error('Asynchronous pipeline execution termination trace failure:', runtimeNetworkExceptionError);
+            alert(runtimeNetworkExceptionError.message || 'An error occurred. Please try again.');
+        } finally {
+            // Restore interactive responsiveness state loops
+            targetButton.style.opacity = '1';
+            targetButton.style.pointerEvents = 'auto';
         }
-    } catch (error) {
-        console.error("Wishlist AJAX error:", error);
-        alert("Network error. Please try again.");
-    } finally {
-        btn.disabled = false;
-        btn.style.opacity = "1";
-    }
+    });
 });
 
