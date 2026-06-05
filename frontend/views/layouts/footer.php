@@ -1,80 +1,82 @@
-<?php // frontend/views/layouts/footer.php ?>
-</main><!-- /main-content -->
-
 <footer class="site-footer">
-  <div class="container footer-grid">
-
-    <div class="footer-brand">
-      <div class="logo" style="font-size:1.4rem">🛒 Grocery<strong>Dash</strong></div>
-      <p>Your neighbourhood grocery store, delivered fresh to your door in 30 minutes or less.</p>
-      <div class="social-links">
-        <a href="#" aria-label="Facebook">FB</a>
-        <a href="#" aria-label="Instagram">IG</a>
-        <a href="#" aria-label="Twitter">TW</a>
+  <div class="footer-inner">
+    
+    <div class="footer-brand-col">
+      <a href="<?= APP_URL ?>/" class="logo">
+        <span class="logo-text">Grocery<strong>Dash</strong></span>
+      </a>
+      <p class="footer-bio">
+        Your neighborhood grocery store, delivered fresh to your door in 30 minutes or less. Clean, fresh, guaranteed.
+      </p>
+      <div class="footer-socials">
+        <a href="#" class="social-icon-btn" aria-label="Facebook">FB</a>
+        <a href="#" class="social-icon-btn" aria-label="Instagram">IG</a>
+        <a href="#" class="social-icon-btn" aria-label="Twitter">TW</a>
       </div>
     </div>
 
-    <div class="footer-col">
-      <h4>Shop</h4>
-      <ul>
-        <li><a href="<?= APP_URL ?>/shop">All Products</a></li>
-        <li><a href="<?= APP_URL ?>/offers">Today's Offers</a></li>
-        <li><a href="<?= APP_URL ?>/shop?category=vegetables">Vegetables</a></li>
-        <li><a href="<?= APP_URL ?>/shop?category=fruits">Fruits</a></li>
-        <li><a href="<?= APP_URL ?>/shop?category=dairy-eggs">Dairy & Eggs</a></li>
+    <div class="footer-links-col">
+      <h3 class="footer-heading">Shop</h3>
+      <ul class="footer-links-list">
+        <li><a href="<?= APP_URL ?>/shop" class="footer-link">All Products</a></li>
+        <li><a href="<?= APP_URL ?>/offers" class="footer-link">Today's Offers</a></li>
+        <li><a href="<?= APP_URL ?>/shop?category=vegetables" class="footer-link">Vegetables</a></li>
+        <li><a href="<?= APP_URL ?>/shop?category=fruits" class="footer-link">Fruits</a></li>
+        <li><a href="<?= APP_URL ?>/shop?category=dairy-eggs" class="footer-link">Dairy & Eggs</a></li>
       </ul>
     </div>
 
-    <div class="footer-col">
-      <h4>Support</h4>
-      <ul>
-        <li><a href="<?= APP_URL ?>/help">Help Centre</a></li>
-        <li><a href="<?= APP_URL ?>/delivery">Delivery Info</a></li>
-        <li><a href="<?= APP_URL ?>/about">About Us</a></li>
-        <li><a href="<?= APP_URL ?>/order/track/">Track Order</a></li>
-      </ul>
-    </div>
-
-    <div class="footer-col">
-      <h4>Account</h4>
-      <ul>
-        <?php if (isLoggedIn()): ?>
-          <li><a href="<?= APP_URL ?>/account/orders">My Orders</a></li>
-          <li><a href="<?= APP_URL ?>/logout">Logout</a></li>
-        <?php else: ?>
-          <li><a href="<?= APP_URL ?>/login">Sign In</a></li>
-          <li><a href="<?= APP_URL ?>/register">Create Account</a></li>
-        <?php endif; ?>
-        <li><a href="<?= APP_URL ?>/cart">My Cart</a></li>
+    <div class="footer-links-col">
+      <h3 class="footer-heading">Support</h3>
+      <ul class="footer-links-list">
+        <li><a href="<?= APP_URL ?>/help" class="footer-link">Help Centre</a></li>
+        <li><a href="<?= APP_URL ?>/delivery" class="footer-link">Delivery Info</a></li>
+        <li><a href="<?= APP_URL ?>/about" class="footer-link">About Us</a></li>
+        <li><a href="<?= APP_URL ?>/account/orders" class="footer-link">Track Order</a></li>
       </ul>
     </div>
 
   </div>
 
   <div class="footer-bottom">
-    <div class="container">
-      <span>© <?= date('Y') ?> GroceryDash. All rights reserved.</span>
-      <span class="footer-legal">
-        <a href="#">Privacy Policy</a> · <a href="#">Terms of Use</a>
-      </span>
+    <div class="footer-bottom-inner">
+      <p class="copyright-text">
+        &copy; <?= date('Y') ?> GroceryDash. All rights reserved.
+      </p>
+      <div class="footer-legal-links">
+        <a href="<?= APP_URL ?>/privacy" class="footer-legal-link">Privacy Policy</a>
+        <a href="<?= APP_URL ?>/terms" class="footer-legal-link">Terms of Use</a>
+      </div>
     </div>
   </div>
 </footer>
 
-<!-- Mobile bottom nav -->
-<nav class="mobile-nav" aria-label="Mobile navigation">
-  <a href="<?= APP_URL ?>/"     class="mob-nav-item">🏠<span>Home</span></a>
-  <a href="<?= APP_URL ?>/shop" class="mob-nav-item">🛍️<span>Shop</span></a>
-  <a href="<?= APP_URL ?>/search" class="mob-nav-item">🔍<span>Search</span></a>
-  <a href="<?= APP_URL ?>/cart" class="mob-nav-item">
-    🛒<span>Cart</span>
-    <span class="cart-badge" id="cartBadgeMob"><?= cartCount() ?: '' ?></span>
-  </a>
-  <a href="<?= APP_URL ?>/<?= isLoggedIn() ? 'account/orders' : 'login' ?>" class="mob-nav-item">👤<span>Account</span></a>
-</nav>
+<button id="scrollToTopBtn" class="scroll-btn-top" aria-label="Scroll back to top horizontal boundary" title="Go to top">
+  ▲
+</button>
 
-<script src="<?= APP_URL ?>/assets/js/main.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
-</body>
-</html>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const scrollBtn = document.getElementById("scrollToTopBtn");
+
+  if (scrollBtn) {
+    // Reveal Scroll Trigger Button gracefully based on screen matrix coordinate depth
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 400) {
+        scrollBtn.classList.add("show");
+      } else {
+        scrollBtn.classList.remove("show");
+      }
+    });
+
+    // Handle automated smooth scrolling execution
+    scrollBtn.addEventListener("click", () => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    });
+  }
+});
+</script>
