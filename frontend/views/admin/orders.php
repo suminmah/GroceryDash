@@ -1,84 +1,104 @@
-<?php 
+<?php
 /**
- * Admin Orders Dashboard Overview View
- * @var string|null $pageTitle
- * @var array $orders
- * @var int $totalPages
- * @var int $page
+ * Admin Subsystem - Master Orders Log Tracking Matrix View
+ * @var array $orders  Passed from AdminController containing the raw transactional entries
  */
-$pageTitle = $pageTitle ?? 'Admin Orders — GroceryDash'; 
-$orders = $orders ?? []; 
-$totalPages = (int)($totalPages ?? 1); 
-$page = (int)($page ?? 1);
-
-// Retain existing URL parameters (like status filtering) during pagination step actions
-$queryParams = $_GET;
 ?>
 
-<div class="admin-main">
-    <div class="admin-header-flex">
-        <h1>Orders Management</h1>
-        <a href="<?= APP_URL ?>/admin/orders?status=pending" class="btn-primary">
-            ⚠️ View Pending Orders
-        </a>
-    </div>
+<div class="admin-view-header mb-4 pb-2 border-bottom">
+    <h1 class="font-weight-bold text-dark" style="font-size: 1.75rem; letter-spacing: -0.025em;">Orders Management</h1>
+    <p class="text-muted" style="font-size: 0.9rem;">Monitor, filter, and track transactional client lifecycle payloads.</p>
 </div>
 
-<div class="table-container">
-    <?php if (empty($orders)): ?>
-        <div class="p-4 text-center text-muted">No operational orders found matching criteria.</div>
-    <?php else: ?>
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Customer Name</th>
-                    <th>Total Capital</th>
-                    <th>Status Flag</th>
-                    <th>Timestamp Date</th>
-                    <th class="text-end">Action Control</th>
-                </tr>
-            </thead>
-            <tbody>
+<div class="mb-4 d-flex align-items-center justify-content-between">
+    <button class="btn-premium-secondary" style="padding: 8px 16px !important; font-size: 0.85rem !important;">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i> View Pending Orders Only
+    </button>
+</div>
+
+<div class="table-container shadow-sm rounded bg-white overflow-hidden">
+    <table class="admin-table w-100 m-0">
+        <thead>
+            <tr>
+                <th style="width: 12%;">Invoice ID</th>
+                <th style="width: 28%;">Customer Profile</th>
+                <th style="width: 15%;">Total Value</th>
+                <th style="width: 15%;">Order Status</th>
+                <th style="width: 18%;">Submission Date</th>
+                <th style="width: 12%; text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (!empty($orders)): ?>
                 <?php foreach ($orders as $order): ?>
                 <tr>
-                    <td><strong>#<?= htmlspecialchars((string)$order['id'], ENT_QUOTES, 'UTF-8') ?></strong></td>
                     <td>
-                        <span class="customer-name-label">
-                            <?= htmlspecialchars((string)$order['customer_name'], ENT_QUOTES, 'UTF-8') ?>
+                        <span class="text-secondary font-weight-bold">#<?= htmlspecialchars((string)($order['id'] ?? '0'), ENT_QUOTES, 'UTF-8') ?></span>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <strong class="text-dark"><?= htmlspecialchars((string)($order['user_name'] ?? 'Guest Customer'), ENT_QUOTES, 'UTF-8') ?></strong>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="price-data-cell font-weight-bold"><?= formatPrice($order['total'] ?? 0) ?></span>
+                    </td>
+                    <td>
+                        <?php $statusFlag = strtolower($order['status'] ?? 'pending'); ?>
+                        <span class="status-badge status-<?= htmlspecialchars($statusFlag, ENT_QUOTES, 'UTF-8') ?>">
+                            <i class="bi bi-circle-fill small me-1" style="font-size: 0.45rem; vertical-align: middle;"></i>
+                            <?= htmlspecialchars((string)($order['status'] ?? 'Pending'), ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </td>
-                    <td class="price-data-cell"><?= formatPrice($order['total']) ?></td>
                     <td>
-                        <?php $statusLower = strtolower($order['status'] ?? 'pending'); ?>
-                        <span class="status-badge status-<?= htmlspecialchars($statusLower, ENT_QUOTES, 'UTF-8') ?>">
-                            <?= htmlspecialchars((string)($order['status'] ?? 'pending'), ENT_QUOTES, 'UTF-8') ?>
+                        <span class="text-muted small">
+                            <?= htmlspecialchars(date('M d, Y • h:i A', strtotime($order['created_at'] ?? date('Y-m-d H:i:s'))), ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </td>
-                    <td><?= htmlspecialchars(date('M d, Y • h:i A', strtotime($order['created_at'])), ENT_QUOTES, 'UTF-8') ?></td>
-                    <td class="text-end">
-                        <a href="<?= APP_URL ?>/admin/orders/<?= htmlspecialchars((string)$order['id'], ENT_QUOTES, 'UTF-8') ?>" class="btn-view">
-                            View Details
+                    <td style="text-align: center; white-space: nowrap;">
+                    <div class="d-inline-flex align-items-center gap-1">
+                        
+                        <a href="<?= APP_URL ?>/admin/orders/<?= (int)($order['id'] ?? 0) ?>" 
+                        class="btn btn-sm btn-light border text-primary" 
+                        title="View Details">
+                            <i class="bi bi-eye-fill"></i>
                         </a>
-                    </td>
+
+                        <a href="<?= APP_URL ?>/admin/orders/<?= (int)($order['id'] ?? 0) ?>/edit" 
+                        class="btn btn-sm btn-light border text-warning" 
+                        title="Edit Order / Update Status">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+
+                        <form action="<?= APP_URL ?>/admin/orders/cancel/<?= (int)($order['id'] ?? 0) ?>" 
+                            method="POST" 
+                            class="d-inline m-0" 
+                            onsubmit="return confirm('Are you sure you want to completely purge/cancel this order matrix record? This action is irreversible.');">
+                            
+                            <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                            
+                            <button type="submit" 
+                                    class="btn btn-sm btn-light border text-danger" 
+                                    title="Delete / Cancel Order">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </form>
+
+                    </div>
+                </td>
                 </tr>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="6" class="p-5 text-center text-muted bg-light">
+                        <div class="py-4">
+                            <span style="font-size: 2.5rem; display: block; margin-bottom: 10px;">📥</span>
+                            <p class="m-0 font-weight-bold text-secondary">The structural transactional ledger is completely empty.</p>
+                            <p class="text-muted small m-0">New customer checkouts will appear automatically within this processing grid.</p>
+                        </div>
+                    </td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
 </div>
-
-<?php if ($totalPages > 1): ?>
-<nav class="pagination-container" aria-label="Orders page pagination navigation">
-    <div class="pagination">
-        <?php for ($i = 1; $i <= $totalPages; $i++): 
-            $queryParams['page'] = $i;
-            $queryString = http_build_query($queryParams);
-        ?>
-            <a href="?<?= $queryString ?>" class="page-btn <?= ($page === $i) ? 'active' : '' ?>">
-                <?= $i ?>
-            </a>
-        <?php endfor; ?>
-    </div>
-</nav>
-<?php endif; ?>

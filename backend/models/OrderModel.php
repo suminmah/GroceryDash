@@ -55,7 +55,6 @@ class OrderModel
                      ds.slot_date,
                      ds.start_time,
                      ds.end_time,
-                     u.name  AS customer_name,
                      u.email AS customer_email
              FROM    orders         o
              LEFT    JOIN Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
@@ -163,47 +162,49 @@ class OrderModel
      * All orders — admin list, with optional status filter and pagination.
      * Used by: /admin/orders
      */
-    public function getAll(string $status = '', int $page = 1, int $perPage = 20): array
+    public function getAll(string $status = '', int $page = 1, int $limit = 10): array
     {
-        $where  = '1 = 1';
+        $offset = ($page - 1) * $limit;
+        
+        // 🔄 CHANGED: Select c.name instead of u.name, and LEFT JOIN the customers table
+        $sql = "SELECT 
+                    o.id,
+                    o.user_id,
+                    o.total,
+                    o.status,
+                    o.delivery_slot_id,
+                    o.created_at,
+                    c.name AS user_name,  -- Safely mapping to the expected view variable alias
+                    u.email AS user_email
+                FROM orders o
+                INNER JOIN users u ON o.user_id = u.id
+                LEFT JOIN customers c ON c.user_id = u.id "; // 👈 Crucial relationship bridge
+
+        $whereClause = [];
         $params = [];
-        if ($status !== '') {
-            $where             = 'o.status = :status';
+
+        if (!empty($status)) {
+            $whereClause[] = "o.status = :status";
             $params[':status'] = $status;
         }
 
-        $offset = (max(1, $page) - 1) * $perPage;
-
-        $stmt = $this->db->prepare(
-            "SELECT  o.id,
-                     o.order_number,
-                     o.status,
-                     o.subtotal,
-                     o.delivery_fee,
-                     o.discount,
-                     o.total,
-                     o.payment_method,
-                     o.payment_status,
-                     o.created_at,
-                     u.name  AS customer_name,
-                     u.email AS customer_email,
-                     ds.slot_date,
-                     ds.start_time,
-                     ds.end_time
-             FROM    orders         o
-             JOIN    users          u  ON u.id       = o.user_id
-             LEFT    JOIN Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
-             WHERE   $where
-             ORDER   BY o.created_at DESC
-             LIMIT   :lim OFFSET :offset"
-        );
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
+        if (!empty($whereClause)) {
+            $sql .= " WHERE " . implode(" AND ", $whereClause);
         }
-        $stmt->bindValue(':lim',    $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset,  PDO::PARAM_INT);
+
+        $sql .= " ORDER BY o.created_at DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+
+        // Explicitly bind variables if pagination parameters are used as integers
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -472,5 +473,20 @@ class OrderModel
             $this->db->rollBack();
             throw new RuntimeException('Cancel failed: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    public function getOrdersList(): array
+    {
+        // 🔄 LEFT JOIN customers to get the real profile name instead of checking u.name
+        $sql = "SELECT 
+                    o.*, 
+                    c.name AS user_name, 
+                    u.email AS user_email
+                FROM orders o
+                INNER JOIN users u ON o.user_id = u.id
+                LEFT JOIN customers c ON c.user_id = u.id
+                ORDER BY o.created_at DESC";
+                
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 }

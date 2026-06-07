@@ -206,20 +206,35 @@ class CategoryModel
     /**
      * Create a new category.
      *
-     * @param  array{name:string, parent_id:int|null} $data
-     * @return int  New category_id
+     * @param  array{name:string, slug:string, parent_id:int|null, created_by:int|null} $data
+     * @return bool
      */
-    public function create(array $data): int
+    public function create(array $data): bool
     {
-        $stmt = $this->db->prepare(
-            "INSERT INTO Categories (name, parent_id)
-             VALUES (:name, :pid)"
-        );
-        $stmt->execute([
-            ':name' => trim($data['name']),
-            ':pid'  => $data['parent_id'] ?? null,
-        ]);
-        return (int) $this->db->lastInsertId();
+        $sql = "INSERT INTO categories (name, slug, parent_id, created_by, created_at) 
+                VALUES (:name, :slug, :parent_id, :created_by, NOW())";
+
+        $stmt = $this->db->prepare($sql);
+
+        // Use explicit parameter binding to gracefully handle the structural NULL transition
+        $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
+        $stmt->bindValue(':slug', $data['slug'], PDO::PARAM_STR);
+        
+        // Bind as NULL if parent_id is missing, otherwise bind as an integer
+        if ($data['parent_id'] === null) {
+            $stmt->bindValue(':parent_id', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':parent_id', $data['parent_id'], PDO::PARAM_INT);
+        }
+
+        // Bind your administrative creator logging field safely
+        if (($data['created_by'] ?? null) === null) {
+            $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':created_by', (int)$data['created_by'], PDO::PARAM_INT);
+        }
+
+        return $stmt->execute();
     }
 
     /**
@@ -254,5 +269,18 @@ class CategoryModel
             "DELETE FROM Categories WHERE id = :id"
         );
         return $stmt->execute([':id' => $categoryId]);
+    }
+
+    public function getAllCategories(): array
+    {
+        $sql = "SELECT 
+                    cat.*, 
+                    c.name AS creator_name
+                FROM categories cat
+                LEFT JOIN users u ON cat.created_by = u.id
+                LEFT JOIN customers c ON c.user_id = u.id
+                ORDER BY cat.name ASC";
+                
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 }

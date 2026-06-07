@@ -159,7 +159,9 @@ $categories = $categories ?? (new Category())->getAll();
         <div class="profile-dropdown-wrapper" id="profileDropdownGroup">
           <a href="#" class="action-btn" id="profileMenuTrigger" role="button" aria-haspopup="true" aria-expanded="false">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span><?= e(explode(' ', $_SESSION['user']['name'])[0]) ?></span>
+            <span>
+              <?= htmlspecialchars(explode(' ', $_SESSION['user']['name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?>
+            </span>
             <span style="font-size: 0.65rem; margin-left: 2px;">▼</span>
           </a>
           

@@ -10,16 +10,26 @@ class User {
         $this->db = Database::connect();
     }
 
-    public function findByEmail(string $email): ?array {
-        $stmt = $this->db->prepare(
-            "SELECT id, name, email, password, role, phone, created_at 
-            FROM users 
-            WHERE email = :email 
-            LIMIT 1"
-        );
+    public function findByEmail(string $email): ?array
+    {
+        // 🔄 Use a LEFT JOIN to grab 'name' from customers without breaking pure admins
+        $sql = "SELECT 
+                    u.id, 
+                    u.email, 
+                    u.password, 
+                    u.role, 
+                    u.is_active, 
+                    c.name
+                FROM users u
+                LEFT JOIN customers c ON c.user_id = u.id
+                WHERE u.email = :email 
+                LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
         $stmt->execute([':email' => $email]);
-        $row = $stmt->fetch();
-        return $row ?: null;
+        
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $user ?: null;
     }
 
     public function findById(int $id): ?array {

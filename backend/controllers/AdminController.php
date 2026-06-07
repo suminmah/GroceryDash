@@ -59,7 +59,7 @@ class AdminController
     /**
      * ── 🎨 DRY View Rendering Isolation Wrapper ───────────────────────────
      */
-    private function render(string $viewPath, string $pageTitle, array $data = []): void
+    private function render(string $viewPath, string $pageTitle, array $data = [])
     {
         // Extract array contexts into scope variables
         extract($data);
@@ -156,10 +156,6 @@ class AdminController
         redirect(APP_URL . '/admin/orders');
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  Products Catalogs
-    // ─────────────────────────────────────────────────────────
-
     /** GET /admin/products */
     public function productsList()
     {
@@ -168,8 +164,8 @@ class AdminController
         $this->render('products', 'Products — Admin', [
             'products' => $this->products->getAll([], $page),
             'page'     => $page,
-            'total'    => $this->products->count(),
-            'pages'    => $this->products->totalPages()
+            'total'    => $this->products->count() ?? 0,
+            'pages'    => $this->products->totalPages() ?? 1
         ]);
     }
 
@@ -373,12 +369,104 @@ class AdminController
     /** POST /admin/categories */
     public function categoryCreate()
     {
-        verifyCsrf();
-        $this->categories->create([
-            'name'      => trim($_POST['name'] ?? ''),
-            'parent_id' => $_POST['parent_id'] !== '' ? (int)$_POST['parent_id'] : null,
-        ]);
-        flash('success', 'Category tracking profile initialized.');
+        verifyCsrf(); // Ensure CSRF validation runs
+
+        // 1. Sanitize incoming text parameters
+        $name = trim($_POST['name'] ?? '');
+        $slug = trim($_POST['slug'] ?? '');
+        
+        // 2. Clear out the broken array warnings: check explicitly if it's set
+        // If your code was checking $_POST['id'] or session variables, safely handle them:
+        $creatorId = $_SESSION['user_id'] ?? null; 
+
+        // 3. Clean up the Parent ID relational logic (Crucial for the FK error)
+        // Convert empty selections, zeros, or empty strings cleanly into a database NULL
+        $parentId = isset($_POST['parent_id']) && $_POST['parent_id'] !== '' && $_POST['parent_id'] != 0 
+                    ? (int)$_POST['parent_id'] 
+                    : null;
+
+        if (empty($name)) {
+            flash('category_error', 'Category naming identities are mandatory fields.');
+            redirect(APP_URL . '/admin/categories');
+        }
+
+        try {
+            $categoryModel = new CategoryModel();
+            
+            // Pass a highly organized payload to the execution model layer
+            $categoryModel->create([
+                'name'       => $name,
+                'slug'       => $slug ?: (slugify($name)), // Fallback fallback formatting
+                'parent_id'  => $parentId, // Will pass a valid integer or clean NULL
+                'created_by' => $creatorId
+            ]);
+
+            flash('success', 'Category tracking mapping completed successfully.');
+            redirect(APP_URL . '/admin/categories');
+
+        } catch (Throwable $e) {
+            flash('category_error', 'Failed to create category matrix: ' . $e->getMessage());
+            redirect(APP_URL . '/admin/categories');
+        }
+    }
+
+    public function categoryEdit(int $id)
+    {
+        $category = $this->categories->findById($id);
+
+        // Guard Clause: Prevent admin updates on non-existent categories
+        if (!$category) {
+            flash('error', 'The requested database catalog map does not exist.');
+            redirect(APP_URL . '/admin/categories');
+        }
+
+        // Fetch the rest of the array so the dropdown parent options select properly
+        $allCategories = $this->categories->getAllCategories();
+
+        // Set layout parameters and pass values to your admin sidebar layout views wrapper
+        $pageTitle = "Edit Category: " . $category['name'];
+        
+        // Output standard layout configuration variables
+        ob_start();
+        include __DIR__ . '/../../frontend/views/admin/category-edit.php';
+        $content = ob_get_clean();
+        
+        include __DIR__ . '/../../frontend/views/admin/layout.php';
+    }
+
+    public function categoryDelete()
+    {
+        // 1. Secure the endpoint against cross-site request forgery
+        if (function_exists('verifyCsrf')) {
+            verifyCsrf(); 
+        }
+
+        // 2. Extract and cast the target identification key
+        $id = (int)($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            flash('error', 'Invalid category identifier sequence parameters.');
+            redirect(APP_URL . '/admin/categories');
+        }
+
+        try {
+            $categoryModel = new CategoryModel();
+            
+            // 3. Fire the database deletion sequence
+            $success = $categoryModel->delete($id);
+
+            if ($success) {
+                flash('success', 'The category record configuration was successfully purged.');
+            } else {
+                flash('error', 'Failed to remove the category. It may have already been deleted.');
+            }
+
+        } catch (Throwable $e) {
+            // Handle cases where foreign keys prevent deletion (e.g., items still assigned to this category)
+            flash('error', 'Database Constraint Protection: Cannot delete this category while active items or child categories are mapped to it.');
+        }
+
+        // 4. Send the administrator back to the refreshed index panel view
         redirect(APP_URL . '/admin/categories');
     }
 
@@ -390,9 +478,11 @@ class AdminController
     public function customersList()
     {
         $this->render('customers', 'Customers — Admin', [
-            'customers' => $this->users->getAllCustomers()
+            'customers' => $this->users->getAllCustomersWithAuth()
         ]);
     }
+
+
 
     // ─────────────────────────────────────────────────────────
     //  Logo Context & Brand Setup Utilities
@@ -455,5 +545,108 @@ class AdminController
         }
 
         redirect(APP_URL . '/admin/settings/logo');
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  Administrative User Creation Actions
+    // ─────────────────────────────────────────────────────────
+
+/** GET /admin/users */
+    public function usersIndex()
+    {
+        $pageTitle = 'System Users — Admin';
+        
+        // 1. Fetch your user credentials dataset matrix
+        $userModel = new UserModel();
+        $users = $userModel->getAllRawAuthUsers(); 
+        $users = $users ?? []; 
+
+        // 2. Open buffer tracking pool
+        ob_start();
+        
+        // 3. Load the structural partial view data file
+        require __DIR__ . '/../../frontend/views/admin/users.php';
+        
+        // 4. Capture the view contents directly into the layout's $content parameter
+        $content = ob_get_clean();
+
+        // 5. Render the full workspace view frame shell
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        exit;
+    }
+
+    /** GET /admin/customers */
+    public function customersIndex()
+    {
+        $this->render('customers', 'Customer Profiles Index', [
+            'customers' => $this->users->getAllCustomersWithAuth()
+        ]);
+    }
+
+    /** GET /admin/customers/new */
+    public function customerForm()
+    {
+        $this->render('customer-form', 'Add New System User — Admin', [
+            'error'   => flash('customer_error'),
+            'success' => flash('customer_success')
+        ]);
+    }
+
+    /** POST /admin/customers */
+    public function customerCreate()
+    {
+        // 🔒 Global CSRF security boundary check
+        verifyCsrf();
+
+        $name     = trim($_POST['name'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $role     = strtolower(trim($_POST['role'] ?? 'customer'));
+
+        // Basic Validation Guard
+        if (empty($name) || empty($email) || empty($password)) {
+            flash('customer_error', 'All registration profile parameters are strictly mandatory.');
+            redirect(APP_URL . '/admin/customers/new');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('customer_error', 'Please submit a valid electronic communication address.');
+            redirect(APP_URL . '/admin/customers/new');
+        }
+
+        try {
+            // Cryptographic securely hashed protection sequence
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+
+            // Binding data array matching structure layouts
+            $userData = [
+                'name'     => $name,
+                'email'    => $email,
+                'password' => $hashedPassword,
+                'role'     => $role === 'admin' ? 'admin' : 'customer'
+            ];
+
+            // Execution through database data mapper instance
+            $userId = $this->users->create($userData);
+
+            if ($userId) {
+                flash('success', "User account profile for '{$name}' generated successfully.");
+                redirect(APP_URL . '/admin/customers');
+            } else {
+                throw new RuntimeException("Database subsystem rejected insert payload mapping.");
+            }
+
+        } catch (PDOException $e) {
+            // Catching potential unique key violations (e.g., duplicate email records)
+            if ((int)$e->getCode() === 23000 || str_contains($e->getMessage(), '1062')) {
+                flash('customer_error', 'An account profile matching that email address already exists.');
+            } else {
+                flash('customer_error', 'Failed saving profile to storage files: ' . $e->getMessage());
+            }
+            redirect(APP_URL . '/admin/customers/new');
+        } catch (Throwable $e) {
+            flash('customer_error', $e->getMessage());
+            redirect(APP_URL . '/admin/customers/new');
+        }
     }
 }

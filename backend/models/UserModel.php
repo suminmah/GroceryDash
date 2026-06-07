@@ -14,6 +14,84 @@ class UserModel
     }
 
     /**
+     * Creates an auth user account and a client demographic profile atomically.
+     * * @param array $authData ['email', 'password', 'role']
+     * @param array $profileData ['name', 'phone']
+     * @return int The newly generated User ID
+     */
+    public function createSeparatedCustomer(array $authData, array $profileData): int
+    {
+        $this->db->beginTransaction();
+
+        try {
+            // 1. Core Authentication Write
+            $sqlUser = "INSERT INTO users (email, password, role, is_active, created_at) 
+                        VALUES (:email, :password, :role, 1, NOW())";
+            
+            $stmtUser = $this->db->prepare($sqlUser);
+            $stmtUser->execute([
+                ':email'    => $authData['email'],
+                ':password' => $authData['password'],
+                ':role'     => $authData['role'] ?? 'customer'
+            ]);
+
+            $userId = (int)$this->db->lastInsertId();
+
+            if ($userId <= 0) {
+                throw new RuntimeException("Failed to generate system login entity.");
+            }
+
+            // 2. Customer Profile Domain Write (Only if role is customer)
+            if (($authData['role'] ?? 'customer') === 'customer') {
+                $sqlCustomer = "INSERT INTO customers (user_id, name, phone, created_at) 
+                                VALUES (:user_id, :name, :phone, NOW())";
+                
+                $stmtCustomer = $this->db->prepare($sqlCustomer);
+                $stmtCustomer->execute([
+                    ':user_id' => $userId,
+                    ':name'    => $profileData['name'],
+                    ':phone'   => $profileData['phone'] ?? null
+                ]);
+            }
+
+            $this->db->commit();
+            return $userId;
+
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Database Transaction Rollback -> User Creation Failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /** Fetch all raw system access credentials */
+    public function getAllRawAuthUsers(): array 
+    {
+        $sql = "SELECT id, email, role, is_active, created_at FROM users ORDER BY id DESC";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Fetch fully combined Customer demographic profiles via an Inner Join */
+    public function getAllCustomersWithAuth(): array
+    {
+        $sql = "SELECT 
+                    c.id AS customer_id, 
+                    u.id AS user_id, 
+                    c.name, 
+                    u.email, 
+                    c.phone, 
+                    u.is_active, 
+                    c.created_at
+                FROM customers c
+                INNER JOIN users u ON c.user_id = u.id
+                ORDER BY c.id DESC";
+                
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
      * Find user by email — returns full row including 'password'
      * Used by: login
      */
@@ -90,19 +168,6 @@ class UserModel
     }
 
     /**
-     * All customers — admin list
-     */
-    public function getAllCustomers(): array
-    {
-        return $this->db->query(
-            "SELECT id, name, email, phone, role, is_active, created_at
-             FROM   users
-             WHERE  role = 'customer'
-             ORDER  BY created_at DESC"
-        )->fetchAll();
-    }
-
-    /**
      * Count customers — admin dashboard stat
      */
     public function countCustomers(): int
@@ -110,5 +175,50 @@ class UserModel
         return (int) $this->db->query(
             "SELECT COUNT(*) FROM users WHERE role = 'customer'"
         )->fetchColumn();
+    }
+
+    public function getAll(string $status = '', int $page = 1, int $limit = 10): array
+    {
+        $offset = ($page - 1) * $limit;
+        
+        // 🔄 CHANGED: Select c.name instead of u.name, and LEFT JOIN the customers table
+        $sql = "SELECT 
+                    o.id,
+                    o.user_id,
+                    o.total_price,
+                    o.status,
+                    o.delivery_slot,
+                    o.created_at,
+                    c.name AS user_name,  -- Safely mapping to the expected view variable alias
+                    u.email AS user_email
+                FROM orders o
+                INNER JOIN users u ON o.user_id = u.id
+                LEFT JOIN customers c ON c.user_id = u.id "; // 👈 Crucial relationship bridge
+
+        $whereClause = [];
+        $params = [];
+
+        if (!empty($status)) {
+            $whereClause[] = "o.status = :status";
+            $params[':status'] = $status;
+        }
+
+        if (!empty($whereClause)) {
+            $sql .= " WHERE " . implode(" AND ", $whereClause);
+        }
+
+        $sql .= " ORDER BY o.created_at DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+
+        // Explicitly bind variables if pagination parameters are used as integers
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

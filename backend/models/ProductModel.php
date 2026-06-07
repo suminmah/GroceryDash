@@ -423,4 +423,20 @@ class ProductModel
 
         return [implode(' AND ', $conditions), $params];
     }
+
+    public function getAllProductsForAdmin(): array
+    {
+        // 🔄 Switch from joining u.name to joining c.name from the customers profile table
+        $sql = "SELECT 
+                    p.*, 
+                    cat.name AS category_name,
+                    c.name AS admin_author_name
+                FROM products p
+                LEFT JOIN categories cat ON p.category_id = cat.id
+                LEFT JOIN users u ON p.created_by = u.id
+                LEFT JOIN customers c ON c.user_id = u.id
+                ORDER BY p.id DESC";
+                
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

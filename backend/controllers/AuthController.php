@@ -84,9 +84,10 @@ class AuthController {
 
         $_SESSION['user'] = [
             'id'    => $user['id'],
-            'name'  => $user['name'],
             'email' => $user['email'],
             'role'  => $user['role'],
+            'name' => $user['name'] ?? 'Admin Account',
+            'is_active' => $user['is_active']
         ];
 
         // ── STEP 7: DEBUG — confirm session was written ──────
