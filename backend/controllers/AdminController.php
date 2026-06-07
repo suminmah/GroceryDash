@@ -24,100 +24,108 @@ class AdminController
     private UserModel         $users;
     private Setting           $settings;
 
+    /**
+     * Controller Initialization Lifecycle
+     * Automatically applies comprehensive security guards over all child routes.
+     */
     public function __construct()
     {
-        // requireLogin();
-        // if (!isAdmin()) {
-        //     http_response_code(403);
-        //     die('Admin access required.');
-        // }
+        // 🔒 Global Security Shield: Centralized Auth Guard Enforcement
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
+            if (isset($_GET['get_category'])) {
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode(['error' => 'Unauthorized administrative context access.']);
+                exit;
+            }
+            header("Location: " . APP_URL . "/login");
+            exit;
+        }
+
+        // Initialize Structural Models
         $this->orders     = new OrderModel();
         $this->products   = new ProductModel();
         $this->categories = new CategoryModel();
         $this->inventory  = new InventoryModel();
         $this->slots      = new DeliverySlotModel();
         $this->users      = new UserModel();
-        require_once __DIR__ . '/../models/Setting.php';
-        $this->settings   = new Setting($dbConnection = Database::connect());
+        $this->settings   = new Setting(Database::connect());
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  GET /admin
-    // ─────────────────────────────────────────────────────────
-
     /**
-     * Admin dashboard — summary stats + recent orders + low stock
+     * ── 🎨 DRY View Rendering Isolation Wrapper ───────────────────────────
      */
-    public function dashboard()
+    private function render(string $viewPath, string $pageTitle, array $data = []): void
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        // Extract array contexts into scope variables
+        extract($data);
         
-        // Ensure your standard authentication guards remain active
-        if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
-            header("Location: " . APP_URL . "/login");
-            exit;
-        }
-
-        // 1. FETCH LOGO PATH FOR THE SHARED LAYOUT CONTEXT
+        // Context configuration mapping parameters fallback logic
         $savedLogo = $this->settings->get('site_logo');
         $adminLogo = !empty($savedLogo) ? $savedLogo : '/assets/images/logo.png';
-        
-        // Format the path completely so the layout view reads it cleanly
         if (!str_starts_with($adminLogo, 'http') && !str_contains($adminLogo, '/grocery-shop/public')) {
             $adminLogo = APP_URL . '/' . ltrim($adminLogo, '/');
         }
 
-        $stats       = $this->orders->getDashboardStats();
-        $recentOrders= $this->orders->getAll('', 1, 5);
-        $lowStock    = $this->inventory->getLowStockItems();
-        $topProducts = $this->orders->getTopProducts(5);
-        $customerCount = $this->users->countCustomers();
-
-        // Revenue chart: last 14 days
-        $revenueData = $this->orders->getDailyRevenue(
-            date('Y-m-d', strtotime('-13 days')),
-            date('Y-m-d')
-        );
-
-        $pageTitle = 'Admin Dashboard — GroceryDash';
-        
         ob_start();
-        require __DIR__ . '/../../frontend/views/admin/dashboard.php';
+        require __DIR__ . "/../../frontend/views/admin/{$viewPath}.php";
         $content = ob_get_clean();
+        
         require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Orders
+    //  Dashboard Panel
+    // ─────────────────────────────────────────────────────────
+
+    /** GET /admin */
+    public function dashboard()
+    {
+        $this->render('dashboard', 'Admin Dashboard — GroceryDash', [
+            'stats'         => $this->orders->getDashboardStats(),
+            'recentOrders'  => $this->orders->getAll('', 1, 5),
+            'lowStock'      => $this->inventory->getLowStockItems(),
+            'topProducts'   => $this->orders->getTopProducts(5),
+            'customerCount' => $this->users->countCustomers(),
+            'revenueData'   => $this->orders->getDailyRevenue(date('Y-m-d', strtotime('-13 days')), date('Y-m-d'))
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  Orders Management
     // ─────────────────────────────────────────────────────────
 
     /** GET /admin/orders */
     public function ordersList()
     {
-        $status  = $_GET['status'] ?? '';
-        $page    = max(1, (int) ($_GET['page'] ?? 1));
-        $orders  = $this->orders->getAll($status, $page, 20);
-        $total   = $this->orders->count($status);
-        $pages   = (int) ceil($total / 20);
+        $status = $_GET['status'] ?? '';
+        $page   = max(1, (int)($_GET['page'] ?? 1));
+        $total  = $this->orders->count($status);
 
-        $pageTitle = 'Orders — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/orders.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('orders', 'Orders — Admin', [
+            'status' => $status,
+            'page'   => $page,
+            'orders' => $this->orders->getAll($status, $page, 20),
+            'pages'  => (int)ceil($total / 20)
+        ]);
     }
 
     /** GET /admin/orders/{id} */
     public function orderDetail(int $orderId)
     {
         $order = $this->orders->findById($orderId);
-        if (!$order) { http_response_code(404); die('Order not found.'); }
+        if (!$order) { 
+            http_response_code(404); 
+            die('Order missing from system files.'); 
+        }
 
-        $pageTitle = 'Order #' . $orderId . ' — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/order-detail.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('order-detail', 'Order #' . $orderId . ' — Admin', [
+            'order' => $order
+        ]);
     }
 
     /** POST /admin/orders/{id}/status */
@@ -128,7 +136,7 @@ class AdminController
 
         try {
             $this->orders->updateStatus($orderId, $status);
-            flash('success', "Order #$orderId status updated to $status.");
+            flash('success', "Order #{$orderId} status updated to {$status}.");
         } catch (InvalidArgumentException $e) {
             flash('error', $e->getMessage());
         }
@@ -141,7 +149,7 @@ class AdminController
         verifyCsrf();
         try {
             $this->orders->cancel($orderId);
-            flash('success', "Order #$orderId cancelled and stock restored.");
+            flash('success', "Order #{$orderId} cancelled and inventory items restored.");
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());
         }
@@ -149,159 +157,146 @@ class AdminController
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Products
+    //  Products Catalogs
     // ─────────────────────────────────────────────────────────
 
     /** GET /admin/products */
     public function productsList()
     {
-        $page     = max(1, (int) ($_GET['page'] ?? 1));
-        $products = $this->products->getAll([], $page);
-        $total    = $this->products->count();
-        $pages    = $this->products->totalPages();
+        $page = max(1, (int)($_GET['page'] ?? 1));
 
-        $pageTitle = 'Products — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/products.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('products', 'Products — Admin', [
+            'products' => $this->products->getAll([], $page),
+            'page'     => $page,
+            'total'    => $this->products->count(),
+            'pages'    => $this->products->totalPages()
+        ]);
     }
 
     /** GET /admin/products/new */
     public function productForm()
     {
-        $categories = $this->categories->getAll();
-        $product    = null;  // null = new product form
-        $pageTitle  = 'Add Product — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/product-form.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('product-form', 'Add Product — Admin', [
+            'categories' => $this->categories->getAll(),
+            'product'    => null
+        ]);
     }
 
     /** GET /admin/products/{id}/edit */
     public function productEdit(int $productId)
     {
         $product = $this->products->findById($productId);
-        if (!$product) { http_response_code(404); die('Product not found.'); }
-        $categories = $this->categories->getAll();
-        $pageTitle  = 'Edit Product — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/product-form.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        if (!$product) { 
+            http_response_code(404); 
+            die('Target product profile not found.'); 
+        }
+
+        $this->render('product-form', 'Edit Product — Admin', [
+            'product'    => $product,
+            'categories' => $this->categories->getAll()
+        ]);
     }
 
-    /** POST /admin/products (create) */
+    /** POST /admin/products */
     public function productCreate()
     {
         verifyCsrf();
         $data = [
-            'sku'          => trim($_POST['sku']          ?? ''),
-            'name'         => trim($_POST['name']         ?? ''),
-            'category_id'  => (int)   ($_POST['category_id']  ?? 0),
-            'price'        => (float) ($_POST['price']        ?? 0),
-            'is_perishable'=> (int)   ($_POST['is_perishable'] ?? 0),
+            'sku'           => trim($_POST['sku'] ?? ''),
+            'name'          => trim($_POST['name'] ?? ''),
+            'category_id'   => (int)($_POST['category_id'] ?? 0),
+            'price'         => (float)($_POST['price'] ?? 0),
+            'is_perishable' => (int)($_POST['is_perishable'] ?? 0),
         ];
 
         try {
             $productId = $this->products->create($data);
-            // Create inventory row with 0 stock
             $this->inventory->create([
                 'product_id'       => $productId,
-                'stock_qty'        => (int) ($_POST['stock_qty']        ?? 0),
-                'buffer_threshold' => (int) ($_POST['buffer_threshold'] ?? 0),
+                'stock_qty'        => (int)($_POST['stock_qty'] ?? 0),
+                'buffer_threshold' => (int)($_POST['buffer_threshold'] ?? 0),
             ]);
             flash('success', 'Product created successfully.');
             redirect(APP_URL . '/admin/products');
         } catch (PDOException $e) {
-            flash('error', 'Could not create product: ' . $e->getMessage());
+            flash('error', 'Could not create product record: ' . $e->getMessage());
             redirect(APP_URL . '/admin/products/new');
         }
     }
 
-    /** POST /admin/products/{id} (update) */
+    /** POST /admin/products/{id} */
     public function productUpdate(int $productId)
     {
         verifyCsrf();
         $data = [
-            'sku'          => trim($_POST['sku']          ?? ''),
-            'name'         => trim($_POST['name']         ?? ''),
-            'category_id'  => (int)   ($_POST['category_id']  ?? 0),
-            'price'        => (float) ($_POST['price']        ?? 0),
-            'is_perishable'=> (int)   ($_POST['is_perishable'] ?? 0),
+            'sku'           => trim($_POST['sku'] ?? ''),
+            'name'          => trim($_POST['name'] ?? ''),
+            'category_id'   => (int)($_POST['category_id'] ?? 0),
+            'price'         => (float)($_POST['price'] ?? 0),
+            'is_perishable' => (int)($_POST['is_perishable'] ?? 0),
         ];
         $this->products->update($productId, $data);
-        flash('success', 'Product updated.');
+        flash('success', 'Product details saved.');
         redirect(APP_URL . '/admin/products');
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Inventory
+    //  Inventory Trackers
     // ─────────────────────────────────────────────────────────
 
     /** GET /admin/inventory */
     public function inventoryList()
     {
-        $items     = $this->inventory->getAll();
-        $lowCount  = $this->inventory->countLowStock();
-        $pageTitle = 'Inventory — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/inventory.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('inventory', 'Inventory — Admin', [
+            'items'    => $this->inventory->getAll(),
+            'lowCount' => $this->inventory->countLowStock()
+        ]);
     }
 
     /** POST /admin/inventory/{productId}/restock */
     public function restock(int $productId)
     {
         verifyCsrf();
-        $qty = max(0, (int) ($_POST['quantity'] ?? 0));
+        $qty = max(0, (int)($_POST['quantity'] ?? 0));
         $this->inventory->setStock($productId, $qty);
 
-        $buf = (int) ($_POST['buffer_threshold'] ?? -1);
+        $buf = (int)($_POST['buffer_threshold'] ?? -1);
         if ($buf >= 0) {
             $this->inventory->setBufferThreshold($productId, $buf);
         }
 
-        flash('success', 'Stock updated.');
+        flash('success', 'Stock variables updated.');
         redirect(APP_URL . '/admin/inventory');
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Delivery Slots
+    //  Delivery Slots Engine
     // ─────────────────────────────────────────────────────────
 
     /** GET /admin/slots */
     public function slotsList()
     {
-        $slots     = $this->slots->getAll();
-        $summary   = $this->slots->getCapacitySummaryByDate(
-            date('Y-m-d'),
-            date('Y-m-d', strtotime('+14 days'))
-        );
-        $pageTitle = 'Delivery Slots — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/slots.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('slots', 'Delivery Slots — Admin', [
+            'slots'   => $this->slots->getAll(),
+            'summary' => $this->slots->getCapacitySummaryByDate(date('Y-m-d'), date('Y-m-d', strtotime('+14 days')))
+        ]);
     }
 
-    /** POST /admin/slots (create single slot) */
+    /** POST /admin/slots */
     public function slotCreate()
     {
         verifyCsrf();
         $this->slots->create([
-            'slot_date'    => $_POST['slot_date'],
-            'start_time'   => $_POST['start_time'],
-            'end_time'     => $_POST['end_time'],
-            'capacity' => (int) ($_POST['max_capacity'] ?? 10),
+            'slot_date'  => $_POST['slot_date'],
+            'start_time' => $_POST['start_time'],
+            'end_time'   => $_POST['end_time'],
+            'capacity'   => (int)($_POST['max_capacity'] ?? 10),
         ]);
-        flash('success', 'Delivery slot created.');
+        flash('success', 'Delivery tracking window generated.');
         redirect(APP_URL . '/admin/slots');
     }
 
-    /** POST /admin/slots/bulk (generate a week of slots) */
+    /** POST /admin/slots/bulk */
     public function slotBulkCreate()
     {
         verifyCsrf();
@@ -311,40 +306,30 @@ class AdminController
             ['start_time' => '16:00:00', 'end_time' => '20:00:00', 'capacity' => 30],
         ];
 
-        $fromDate = $_POST['from_date'] ?? '';
-        $toDate   = $_POST['to_date']   ?? '';
-        $start    = DateTime::createFromFormat('Y-m-d', $fromDate);
-        $end      = DateTime::createFromFormat('Y-m-d', $toDate);
+        $start = DateTime::createFromFormat('Y-m-d', $_POST['from_date'] ?? '');
+        $end   = DateTime::createFromFormat('Y-m-d', $_POST['to_date'] ?? '');
 
-        if (!$start || !$end) {
-            flash('error', 'Invalid date range.');
+        if (!$start || !$end || $start->setTime(0,0) > $end->setTime(0,0)) {
+            flash('error', 'Operational range configurations invalid.');
             redirect(APP_URL . '/admin/slots');
         }
 
-        $start->setTime(0, 0, 0);
-        $end->setTime(0, 0, 0);
-
-        if ($start > $end) {
-            flash('error', 'The start date must be before or equal to the end date.');
-            redirect(APP_URL . '/admin/slots');
-        }
-
-        $created = 0;
+        $created  = 0;
         $interval = new DateInterval('P1D');
 
         for ($date = clone $start; $date <= $end; $date->add($interval)) {
             foreach ($templates as $template) {
                 $this->slots->create([
-                    'slot_date'    => $date->format('Y-m-d'),
-                    'start_time'   => $template['start_time'],
-                    'end_time'     => $template['end_time'],
-                    'capacity' => $template['capacity'],
+                    'slot_date'  => $date->format('Y-m-d'),
+                    'start_time' => $template['start_time'],
+                    'end_time'   => $template['end_time'],
+                    'capacity'   => $template['capacity'],
                 ]);
                 $created++;
             }
         }
 
-        flash('success', "$created delivery slots created.");
+        flash('success', "{$created} workflow distribution items committed.");
         redirect(APP_URL . '/admin/slots');
     }
 
@@ -353,109 +338,80 @@ class AdminController
     {
         verifyCsrf();
         $this->slots->delete($slotId);
-        flash('success', 'Slot deleted.');
+        flash('success', 'Slot item scrubbed from database records.');
         redirect(APP_URL . '/admin/slots');
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Categories
+    //  Categories Management (Includes API Handlers)
     // ─────────────────────────────────────────────────────────
 
     /** GET /admin/categories */
     public function categoriesList()
     {
-        // Check for the JSON request
+        // 🌟 REFACTORED API HANDLER: Clean data parsing separation
         if (isset($_GET['get_category'])) {
-            // Clear any accidental spaces or hidden characters from your config files
             if (ob_get_length()) ob_clean(); 
-            
             header('Content-Type: application/json');
             
             try {
                 $id = (int)$_GET['get_category'];
-                
-                // CORRECT STATIC CALL based on your database.php
-                $conn = Database::connect(); 
-                
-                $stmt = $conn->prepare("SELECT id, name, slug, parent_id, sort_order, is_active FROM categories WHERE id = ?");
-                $stmt->execute([$id]);
-                $category = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                echo json_encode($category ?: ['error' => 'Category not found']);
+                // Clean Fix: Route execution through your unified Model context wrapper mapping
+                $category = $this->categories->findById($id);
+                echo json_encode($category ?: ['error' => 'Category entry not present']);
             } catch (Exception $e) {
                 echo json_encode(['error' => $e->getMessage()]);
             }
-            exit; // Stop the rest of the Admin Menu from loading
+            exit; 
         }
 
-        // Normal Page Rendering
-        $categories      = $this->categories->getTree();
-        $pageTitle = 'Categories — Admin';
-        
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/categories.php';
-        $content = ob_get_clean();
-        
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('categories', 'Categories — Admin', [
+            'categories' => $this->categories->getTree()
+        ]);
     }
 
-    /** POST /admin/categories (create) */
+    /** POST /admin/categories */
     public function categoryCreate()
     {
         verifyCsrf();
         $this->categories->create([
-            'name'      => trim($_POST['name']      ?? ''),
-            'parent_id' => $_POST['parent_id'] !== '' ? (int) $_POST['parent_id'] : null,
+            'name'      => trim($_POST['name'] ?? ''),
+            'parent_id' => $_POST['parent_id'] !== '' ? (int)$_POST['parent_id'] : null,
         ]);
-        flash('success', 'Category created.');
+        flash('success', 'Category tracking profile initialized.');
         redirect(APP_URL . '/admin/categories');
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Customers
+    //  Customer Subsystems
     // ─────────────────────────────────────────────────────────
 
     /** GET /admin/customers */
     public function customersList()
     {
-        $customers = $this->users->getAllCustomers();
-        $pageTitle = 'Customers — Admin';
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/customers.php';
-        $content = ob_get_clean();
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+        $this->render('customers', 'Customers — Admin', [
+            'customers' => $this->users->getAllCustomers()
+        ]);
     }
 
+    // ─────────────────────────────────────────────────────────
+    //  Logo Context & Brand Setup Utilities
+    // ─────────────────────────────────────────────────────────
+
     /** GET /admin/settings/logo */
-    public function logoForm() {
-        // 1. Session & Admin Security Check
-        if (session_status() === PHP_SESSION_NONE) session_start();
-    
-        // Authenticate as admin (matching your exact working dashboard guard structure)
-        if (!isset($_SESSION['user']) || strtolower($_SESSION['user']['role'] ?? '') !== 'admin') {
-            header("Location: " . APP_URL . "/login");
-            exit;
-        }
-
-        $pageTitle = 'Logo Settings'; 
-        $error = flash('logo_error');
-        $success = flash('logo_success');
-        
-        // Fetch the raw value saved inside your database settings model
-        $savedLogo = $this->settings->get('site_logo');
-        $currentLogo = !empty($savedLogo) ? $savedLogo : APP_URL . '/assets/images/logo.png'; 
-
-        ob_start();
-        require __DIR__ . '/../../frontend/views/admin/logo-settings.php'; 
-        $content = ob_get_clean();
-
-        require __DIR__ . '/../../frontend/views/admin/layout.php';
+    public function logoForm() 
+    {
+        $this->render('logo-settings', 'Logo Settings', [
+            'error'       => flash('logo_error'),
+            'success'     => flash('logo_success'),
+            'currentLogo' => !empty($this->settings->get('site_logo')) ? $this->settings->get('site_logo') : APP_URL . '/assets/images/logo.png'
+        ]);
     }
 
     /** POST /admin/settings/logo */
-    public function updateLogo() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        verifyCsrf(); // CSRF Guard block validation pass check execution
+    public function updateLogo() 
+    {
+        verifyCsrf();
 
         if (!isset($_FILES['logo']) || $_FILES['logo']['error'] === UPLOAD_ERR_NO_FILE) {
             flash('logo_error', 'Please select a valid image file to upload.');
@@ -463,48 +419,39 @@ class AdminController
         }
 
         $file = $_FILES['logo'];
-        
         if ($file['error'] !== UPLOAD_ERR_OK) {
             flash('logo_error', 'An error occurred during file upload.');
             redirect(APP_URL . '/admin/settings/logo');
         }
 
-        // Limit maximum size threshold boundaries securely (2MB Max capacity check)
-        $maxSize = 2 * 1024 * 1024; 
-        if ($file['size'] > $maxSize) {
+        if ($file['size'] > 2 * 1024 * 1024) {
             flash('logo_error', 'File size exceeds the 2MB limit.');
             redirect(APP_URL . '/admin/settings/logo');
         }
 
-        // Validation against MIME mapping variants layout
         $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($file['tmp_name']);
+        $finfo        = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType     = $finfo->file($file['tmp_name']);
 
         if (!in_array($mimeType, $allowedMimes)) {
-            flash('logo_error', 'Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.');
+            flash('logo_error', 'Invalid file type format constraint matched.');
             redirect(APP_URL . '/admin/settings/logo');
         }
 
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'logo_' . time() . '.' . $ext; 
+        $ext       = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename  = 'logo_' . time() . '.' . $ext; 
         $uploadDir = __DIR__ . '/../../public/uploads/logo/';
 
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
 
-        $destination = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $destination)) {
+        if (move_uploaded_file($file['tmp_name'], $uploadDir . $filename)) {
             $relativeUrlPath = APP_URL . '/uploads/logo/' . $filename;
-            
-            // Connect and commit update to your app setup configuration schema safely
             $this->settings->set('site_logo', $relativeUrlPath);
-            
             flash('logo_success', 'Website logo updated successfully!');
         } else {
-            flash('logo_error', 'Failed to save the uploaded image to the server.');
+            flash('logo_error', 'Failed to write image data parameters onto disk file blocks.');
         }
 
         redirect(APP_URL . '/admin/settings/logo');

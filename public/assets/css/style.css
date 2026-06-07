@@ -955,16 +955,29 @@ h1 {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;
 }
 
 .stat-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+}
+
+.stat-card-icon {
+  font-size: 2rem;
+  width: 56px;
+  height: 56px;
+  background: #f8fafc;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stat-card:hover {
@@ -972,21 +985,102 @@ h1 {
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }
 
-.stat-card h3 {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #6c757d;
-    margin: 0 0 0.75rem;
-    font-weight: 600;
+.stat-card-content h3 {
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 0 0 0.25rem 0;
 }
 
 .stat-number {
     font-size: 2.2rem;
     font-weight: 700;
     color: #2e7d32;
-    margin: 0;
-    line-height: 1.2;
+}
+
+.empty-state-card {
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+/* ── Administrative Notification Alerts ── */
+.admin-alert {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    animation: slideDownIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.alert-success {
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+}
+
+.alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+}
+
+.alert-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.alert-message {
+    flex-grow: 1;
+}
+
+.alert-message strong {
+    font-weight: 700;
+    margin-right: 0.25rem;
+}
+
+.alert-close {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    color: currentColor;
+    opacity: 0.5;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: opacity 0.2s;
+}
+
+.alert-close:hover {
+    opacity: 1;
+}
+
+/* Smooth Entrance Animation */
+@keyframes slideDownIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Recent orders table (optional) */
@@ -1154,10 +1248,17 @@ h1 {
     color: var(--white);
 }
 .admin-main {
-    flex: 1;
-    padding: 2.5rem;
-
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 2rem 2.5rem;
+    box-sizing: border-box;
 }
+
+.admin-view-header {
+  margin-bottom: 2rem;
+}
+
 .admin-main h1 {
     font-size: 1.8rem;
     margin-bottom: 2rem;
@@ -1174,6 +1275,235 @@ h1 {
     .admin-layout { flex-direction: column; }
     .admin-sidebar { width: 100%; }
 }
+
+/* ── Admin View Order Profile Specific Extensions ── */
+
+.view-navigation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.75rem;
+}
+
+.back-link {
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: #10b981; /* GroceryDash Brand Accent Brand Match */
+}
+
+/* Base Panel Card Structural Unit Layouts */
+.panel-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.015);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.panel-card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.panel-card-header h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+.timestamp-text {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+/* Detail Screen Layout Blueprint Structure */
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .order-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Primary Data Manifest Table Modifiers */
+.detail-manifest-table th, 
+.detail-manifest-table td {
+  padding: 1rem 1.5rem;
+}
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.manifest-summary-block {
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.total-highlight {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.total-highlight .price-value {
+  color: #10b981; /* Brand green */
+  font-size: 1.4rem;
+}
+
+/* Sidebar Profile Snips UI Formatting */
+.sidebar-card {
+  padding: 1.5rem;
+}
+
+.sidebar-card h3 {
+  margin: 0 0 1.25rem 0;
+  font-size: 1.05rem;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.user-profile-snippet {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-avatar {
+  width: 44px;
+  height: 44px;
+  background: #f1f5f9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-meta .user-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.profile-meta .user-email {
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+/* Workflow Form Interaction Element Overhauls */
+.control-description {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin:-0.5rem 0 1.25rem 0;
+  line-height: 1.4;
+}
+
+.modern-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: #334155;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.15rem;
+}
+
+.modern-select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+.btn-primary-action {
+  width: 100%;
+  margin-top: 1rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.85rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-primary-action:hover {
+  background: #059669;
+}
+
+.btn-primary-action:active {
+  transform: scale(0.99);
+}
+
+.quick-cancel-action {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed #e2e8f0;
+  text-align: center;
+}
+
+.btn-text-danger {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-text-danger:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+/* ── 🟢 System Status Badge Modifiers ───────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 20px;
+}
+
+.status-pending { background: #fef3c7; color: #d97706; }
+.status-confirmed { background: #ecfdf5; color: #047857; }
+.status-packed { background: #f3e8ff; color: #6b21a8; }
+.status-out_for_delivery { background: #e0f2fe; color: #0369a1; }
+.status-delivered { background: #d1fae5; color: #065f46; }
+.status-cancelled { background: #fee2e2; color: #991b1b; }
 
 /* ── Auth ─────────────────────────────────────────────── */
 .auth-wrap { display: flex; justify-content: center; padding: 4rem 1rem; }

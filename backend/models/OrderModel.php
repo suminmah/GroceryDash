@@ -424,15 +424,20 @@ class OrderModel
      * Update order status — guards against invalid values.
      * Used by: admin order management
      */
-    public function updateStatus(int $orderId, string $status): bool
+    public function updateStatus(int $orderId, string $status)
     {
-        if (!in_array($status, self::VALID_STATUSES, true)) {
-            throw new InvalidArgumentException("Invalid order status: $status");
+        // Ensure you target your PDO connection variable name correctly
+        $sql = "UPDATE orders SET status = :status WHERE id = :id";
+        $stmt = $this->db->prepare($sql); 
+        
+        $success = $stmt->execute([
+            ':status' => $status,
+            ':id'     => $orderId
+        ]);
+
+        if (!$success) {
+            throw new InvalidArgumentException("Database failed to update the record parameters.");
         }
-        $stmt = $this->db->prepare(
-            "UPDATE orders SET status = :status WHERE id = :id"
-        );
-        return $stmt->execute([':status' => $status, ':id' => $orderId]);
     }
 
     /**

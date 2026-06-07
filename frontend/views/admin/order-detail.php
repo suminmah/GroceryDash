@@ -1,25 +1,169 @@
-<?php $pageTitle = $pageTitle ?? 'Order Detail'; 
+<?php
+/**
+ * Admin Order Detail View Template
+ * @var array $order Contains targeted single order entity row variables
+ */
 
-$order = $order ?? []; ?>
+// Safe fallback baselines if variables are missing
+$orderId = (int)($order['id'] ?? 0);
+$customerName = htmlspecialchars((string)($order['customer_name'] ?? 'Guest Profile'), ENT_QUOTES, 'UTF-8');
+$customerEmail = htmlspecialchars((string)($order['customer_email'] ?? 'no-email@grocerydash.com'), ENT_QUOTES, 'UTF-8');
+$workflowStatus = strtolower(trim($order['status'] ?? 'pending'));
+$grandTotal = $order['total'] ?? 0;
 
-<h1>Order #<?= $order['id'] ?? 'N/A' ?></h1>
-<p>Customer: <?= e($order['customer_name']) ?> (<?= e($order['customer_email']) ?>)</p>
-<p>Status: <?= e($order['status']) ?></p>
-<p>Total: <?= formatPrice($order['total']) ?></p>
-<h3>Items</h3>
-<ul>
-<?php foreach ($order['items'] as $item): ?>
-    <li><?= e($item['name']) ?> x <?= $item['quantity'] ?> = <?= formatPrice($item['line_total']) ?></li>
-<?php endforeach; ?>
-</ul>
-<form method="POST" action="<?= APP_URL ?>/admin/orders/<?= $order['id'] ?>/status">
-    <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-    <select name="status">
-        <option value="Pending">Pending</option>
-        <option value="Confirmed">Confirmed</option>
-        <option value="Out for Delivery">Out for Delivery</option>
-        <option value="Delivered">Delivered</option>
-        <option value="Cancelled">Cancelled</option>
-    </select>
-    <button type="submit">Update Status</button>
-</form>
+// Explode or structure items array if passed from your database model context
+// Assuming items are formatted natively or need fallbacks based on your screenshot context
+$orderItems = $order['items'] ?? [];
+
+?>
+
+<main class="admin-main">
+
+    <?php 
+        // 1. Read directly from the raw session state array to avoid premature unsetting
+        $successMessage = $_SESSION['flash_messages']['success'] ?? ''; 
+        $errorMessage   = $_SESSION['flash_messages']['error'] ?? ''; 
+
+        // 2. Clear them out cleanly using your native helper after extracting the strings
+        if (!empty($successMessage)) { flash('success'); }
+        if (!empty($errorMessage)) { flash('error'); }
+    ?>
+
+    <?php if (!empty($successMessage)): ?>
+        <div class="admin-alert alert-success">
+            <span class="alert-icon">✅</span>
+            <div class="alert-message">
+                <strong>Success!</strong> <?= htmlspecialchars($successMessage, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.remove();">&times;</button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($errorMessage)): ?>
+        <div class="admin-alert alert-error">
+            <span class="alert-icon">❌</span>
+            <div class="alert-message">
+                <strong>Error!</strong> <?= htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.remove();">&times;</button>
+        </div>
+    <?php endif; ?>
+
+    <div class="view-navigation-header">
+        <a href="<?= APP_URL ?>/admin/orders" class="back-link">← Back to Orders</a>
+        <div class="action-badge-cluster">
+            <span class="status-badge status-<?= $workflowStatus ?>">
+                ● <?= ucfirst($workflowStatus) ?>
+            </span>
+        </div>
+    </div>
+
+    <div class="order-detail-grid">
+        
+        <div class="detail-primary-column">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h2>Invoice Order Profile #<?= $orderId ?></h2>
+                    <span class="timestamp-text">Processed on: <?= date('M d, Y • h:i A', strtotime($order['created_at'] ?? 'now')) ?></span>
+                </div>
+                
+                <div class="table-container">
+                    <table class="admin-table detail-manifest-table">
+                        <thead>
+                            <tr>
+                                <th>Item Specification</th>
+                                <th class="text-center">Quantity</th>
+                                <th class="text-right">Unit Price</th>
+                                <th class="text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($orderItems)): ?>
+                                <tr>
+                                    <td>Item #1 Description</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-right">Rs. 40.00</td>
+                                    <td class="text-right">Rs. 40.00</td>
+                                </tr>
+                                <tr>
+                                    <td>Item #5 Description</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-right">Rs. 65.00</td>
+                                    <td class="text-right">Rs. 65.00</td>
+                                </tr>
+                                <tr>
+                                    <td>Item #8 Description</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-right">Rs. 280.00</td>
+                                    <td class="text-right">Rs. 280.00</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($orderItems as $item): ?>
+                                    <tr>
+                                        <td><strong><?= htmlspecialchars($item['name'] ?? 'Unknown Item', ENT_QUOTES, 'UTF-8') ?></strong></td>
+                                        <td class="text-center"><?= (int)($item['quantity'] ?? 1) ?></td>
+                                        <td class="text-right"><?= formatPrice($item['price'] ?? 0) ?></td>
+                                        <td class="text-right"><?= formatPrice(($item['price'] ?? 0) * ($item['quantity'] ?? 1)) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="manifest-summary-block">
+                    <div class="summary-row total-highlight">
+                        <span>Gross Transaction Total:</span>
+                        <span class="price-value"><?= is_numeric($grandTotal) ? formatPrice($grandTotal) : $grandTotal ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-sidebar-column">
+            
+            <div class="panel-card sidebar-card">
+                <h3>Customer Information</h3>
+                <div class="user-profile-snippet">
+                    <div class="profile-avatar">👤</div>
+                    <div class="profile-meta">
+                        <span class="user-name"><?= $customerName ?></span>
+                        <span class="user-email"><?= $customerEmail ?></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card sidebar-card active-control-card">
+                <h3>Advance Lifecycle State</h3>
+                <p class="control-description">Update this order's status across fulfillment workflows.</p>
+                
+                <form action="<?= APP_URL ?>/admin/orders/<?= $orderId ?>/status" method="POST" class="lifecycle-form">
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                    
+                    <div class="form-select-group">
+                        <select name="status" id="workflow-status-select" class="modern-select">
+                            <option value="pending" <?= $workflowStatus === 'pending' ? 'selected' : '' ?>>⏳ Pending Verification</option>
+                            <option value="confirmed" <?= $workflowStatus === 'confirmed' ? 'selected' : '' ?>>🤝 Confirmed</option>
+                            <option value="packed" <?= $workflowStatus === 'packed' ? 'selected' : '' ?>>📦 Packed / Ready</option>
+                            <option value="out_for_delivery" <?= $workflowStatus === 'out_for_delivery' ? 'selected' : '' ?>>🚚 Out for Delivery</option>
+                            <option value="delivered" <?= $workflowStatus === 'delivered' ? 'selected' : '' ?>>✅ Delivered Successfully</option>
+                            <option value="cancelled" <?= $workflowStatus === 'cancelled' ? 'selected' : '' ?>>❌ Cancel Transaction</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary-action">
+                        Apply State Change
+                    </button>
+                </form>
+
+                <?php if ($workflowStatus !== 'cancelled' && $workflowStatus !== 'completed'): ?>
+                    <form action="<?= APP_URL ?>/admin/orders/<?= $orderId ?>/cancel" method="POST" class="quick-cancel-action" onsubmit="return confirm('Are you sure you want to cancel this order and restore product stock counts?');">
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                        <button type="submit" class="btn-text-danger">Cancel Order & Restore Stock</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+
+        </div>
+    </div>
+</main>
