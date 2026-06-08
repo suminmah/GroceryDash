@@ -1,0 +1,6 @@
+RewriteEngine On
+RewriteBase /grocery-shop/
+
+# Automatically forward any naked parent subdirectory calls straight into the public folder pipeline
+RewriteRule ^$ public/ [L]
+RewriteRule ^(.*)$ public/$1 [L]

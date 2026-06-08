@@ -79,4 +79,62 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Event delegation: Intercept clicks on any element with the .wishlist-btn class
+    document.body.addEventListener('click', function(e) {
+        const btn = e.target.closest('.wishlist-btn');
+        if (!btn) return; // Exit if a wishlist button wasn't clicked
+
+        e.preventDefault();
+
+        // 1. Extract data structures embedded natively in the element
+        const productId = btn.getAttribute('data-product-id');
+        const csrfToken = btn.getAttribute('data-csrf');
+
+        // 2. Format request body to automatically populate PHP's $_POST array
+        const payload = new URLSearchParams();
+        payload.append('product_id', productId);
+        payload.append('csrf_token', csrfToken); // Matches your verifyCsrf() utility lookups
+
+        // 3. Send async dispatch stream to your route controller endpoint
+        fetch('/grocery-shop/public/wishlist/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: payload
+        })
+        .then(async response => {
+            const data = await response.json();
+            
+            // Check for explicit structural HTTP status issues
+            if (!response.ok) {
+                // Handle unauthenticated state redirections natively (401 Unauthorized)
+                if (response.status === 401 && data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                throw new Error(data.message || 'Server error occurred.');
+            }
+            return data;
+        })
+        .then(data => {
+            if (data && data.success) {
+                // 4. Update element UI states smoothly based on controller responses
+                if (data.wishlisted) {
+                    btn.classList.add('wishlisted');
+                    btn.innerHTML = '❤️';
+                } else {
+                    btn.classList.remove('wishlisted');
+                    btn.innerHTML = '🤍';
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Wishlist Action Failure:', err);
+            alert(err.message || 'Failed to update wishlist. Please try again.');
+        });
+    });
+});
 </script>

@@ -458,4 +458,17 @@ class ProductModel
                 
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // ==========================================================================
+    // backend/models/ProductModel.php
+    // ==========================================================================
+
+    public function getFeatured(int $limit = 8): array
+    {
+        $sql = "SELECT * FROM products WHERE is_active = 1 AND is_featured = 1 ORDER BY id DESC LIMIT :limit";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }

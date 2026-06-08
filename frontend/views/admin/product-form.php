@@ -118,15 +118,16 @@ $formAction = $isEdit ? APP_URL . "/admin/products/{$product['id']}/edit" : APP_
                     </div>
                 </div>
 
-                <div class="card shadow-sm border-0 rounded mb-4">
-                    <div class="card-body p-4">
-                        <h5 class="card-title text-dark font-weight-bold mb-3" style="font-size: 1.1rem;">Media Resource Asset</h5>
-                        <div class="border border-2 border-dashed rounded p-3 text-center bg-light position-relative">
-                            <i class="bi bi-image text-secondary h4 d-block mb-1"></i>
-                            <span class="small text-muted d-block">Select Catalog Thumbnail</span>
-                            <input type="file" name="image" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" accept="image/*">
-                        </div>
-                    </div>
+                <div class="product-image-container">
+                    <?php 
+                    // Secure filename tracking with a fallback standard icon image placeholder
+                    $displayImage = !empty($product['image']) ? $product['image'] : 'default.jpg'; 
+                    ?>
+                    
+                    <img src="<?= APP_URL ?>/uploads/products/<?= htmlspecialchars($displayImage, ENT_QUOTES, 'UTF-8') ?>" 
+                        class="img-fluid rounded" 
+                        alt="<?= htmlspecialchars($product['name'] ?? 'Catalog Item') ?>"
+                        style="max-height: 150px; object-fit: contain;">
                 </div>
 
                 <button type="submit" class="btn <?= $isEdit ? 'btn-warning text-dark font-weight-bold' : 'btn-success' ?> w-100 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-1">

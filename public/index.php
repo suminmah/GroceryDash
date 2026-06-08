@@ -1,9 +1,12 @@
 <?php
 // ==========================================================================
-// public/index.php — Consolidated Front Controller / App Router
+// 📂 public/index.php — High-Performance Linear Routing Engine
 // ==========================================================================
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-// 1. Force absolute Output Buffering insulation to protect response streams
+// Force absolute Output Buffering insulation to protect response streams
 ob_start();
 
 require_once __DIR__ . '/../backend/config/app.php';
@@ -35,12 +38,15 @@ if (function_exists('csrfToken')) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$rawuri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $base   = '/grocery-shop/public';
 
-if (str_starts_with($uri, $base)) { 
-    $uri = substr($uri, strlen($base)); 
+if (str_starts_with($rawuri, $base)) {
+    $uri = substr($rawuri, strlen($base));
+} else {
+    $uri = $rawuri;
 }
+
 $uri = '/' . trim($uri, '/');
 
 /**
@@ -82,7 +88,7 @@ if ($method === 'GET') {
     if ($uri === '/' || $uri === '')                                 { (new ShopController())->home(); }
     elseif ($uri === '/shop')                                         { (new ShopController())->shop(); }
     elseif (match_route($uri, '/product/{id}', $params))              { (new ShopController())->detail((int) $params['id']); }
-        elseif (match_route($uri, '/category/{id}', $params))             { (new ShopController())->category((int) $params['id']); }
+    elseif (match_route($uri, '/category/{id}', $params))             { (new ShopController())->category((int) $params['id']); }
     elseif ($uri === '/search')                                       { (new ShopController())->search(); }
     elseif ($uri === '/cart') {
         require_once __DIR__ . '/../backend/models/ProductModel.php';
@@ -96,13 +102,13 @@ if ($method === 'GET') {
     }
     elseif ($uri === '/offers')                                       { (new ShopController())->offers(); }
     elseif ($uri === '/checkout')                                     { (new CheckoutController())->form(); }
-    elseif (match_route($uri, '/order/confirmation/{id}', $params))  { (new CheckoutController())->confirmation((int) $params['id']); }
+    elseif (match_route($uri, '/order/confirmation/{id}', $params))   { (new CheckoutController())->confirmation((int) $params['id']); }
     elseif (match_route($uri, '/order/track/{id}', $params)) {
         require_once __DIR__ . '/../backend/controllers/OrderController.php';
         (new OrderController())->track($params['id']);
     }
     elseif ($uri === '/account/orders')                               { (new CheckoutController())->myOrders(); }
-    elseif (match_route($uri, '/account/orders/{id}', $params))      { (new OrderController())->orderDetail((int) $params['id']); }
+    elseif (match_route($uri, '/account/orders/{id}', $params))       { (new OrderController())->orderDetail((int) $params['id']); }
     elseif ($uri === '/login')                                        { (new AuthController())->loginForm(); }
     elseif ($uri === '/register')                                     { (new AuthController())->registerForm(); }
     elseif ($uri === '/logout')                                       { (new AuthController())->logout(); }
@@ -110,21 +116,18 @@ if ($method === 'GET') {
     elseif ($uri === '/about')                                        { require __DIR__ . '/../frontend/views/pages/about.php'; }
     elseif ($uri === '/help')                                         { require __DIR__ . '/../frontend/views/pages/help.php'; }
     
-    // ⚙️ ADMINISTRATIVE SUBSYSTEM WORKFLOW ROUTING (GET)
+    // ⚙️ ADMINISTRATIVE SUBSYSTEM WORKFLOW ROUTING (GET) — Unified via clean conditional nesting
     elseif (in_array($uri, ['/admin', '/admin/dashboard']))           { (new AdminController())->dashboard(); }
-    if (match_route($uri, '/admin/orders/{id}/edit', $params)) {
+    elseif (match_route($uri, '/admin/orders/{id}/edit', $params)) {
         $orderId = (int)$params['id'];
         (new AdminController())->orderEdit($orderId);
-        exit;
     }
     elseif (match_route($uri, '/admin/orders/{id}', $params)) {
         $orderId = (int)$params['id'];
         (new AdminController())->orderDetail($orderId);
-        exit;
     }
     elseif ($uri === '/admin/orders' || match_route($uri, '/admin/orders')) {
         (new AdminController())->ordersList();
-        exit;
     }
     elseif ($uri === '/admin/products')                               { (new AdminController())->productsList(); }
     elseif ($uri === '/admin/products/new')                           { (new AdminController())->productForm(); }
@@ -135,15 +138,11 @@ if ($method === 'GET') {
     elseif ($uri === '/admin/categories')                             { (new AdminController())->categoriesList(); }
     elseif ($uri === '/admin/categories/new')                         { (new AdminController())->categoryCreate(); }
     
-    // 🔄 FIX: Integrated category edit directly into the conditional else-if logic branch
     elseif ($uri === '/admin/categories/edit' || match_route($uri, '/admin/categories/{id}/edit', $params)) {
         $categoryId = !empty($params['id']) ? (int)$params['id'] : (int)($_GET['id'] ?? 0);
-        $controller = new AdminController();
-        $controller->categoryEdit($categoryId);
-        exit;
+        (new AdminController())->categoryEdit($categoryId);
     }
     
-    // 👥 Separated User Credentials Panel vs. Customer Profiles Data Panels
     elseif ($uri === '/admin/users')                                  { (new AdminController())->usersIndex(); }
     elseif ($uri === '/admin/customers')                              { (new AdminController())->customersIndex(); }
     elseif ($uri === '/admin/customers/new')                          { (new AdminController())->customerForm(); }
@@ -163,7 +162,7 @@ if ($method === 'GET') {
 // 📤 OUTGOING HTTP POST REQUEST ROUTING MATRIX
 // ==========================================================================
 } elseif ($method === 'POST') {
-    if ($uri === '/login')                                                  { (new AuthController())->login(); }
+    if ($uri === '/login')                                                   { (new AuthController())->login(); }
     elseif ($uri === '/register')                                           { (new AuthController())->register(); }
     elseif ($uri === '/cart/add') { require_once __DIR__ . '/../backend/controllers/CartController.php'; (new CartController())->add(); }
     elseif ($uri === '/cart/update') { require_once __DIR__ . '/../backend/controllers/CartController.php'; (new CartController())->update(); }
@@ -173,46 +172,36 @@ if ($method === 'GET') {
     elseif (match_route($uri, '/admin/orders/{id}/status', $params))        { (new AdminController())->updateOrderStatus((int) $params['id']); }
     elseif (match_route($uri, '/admin/orders/{id}/cancel', $params))        { (new AdminController())->cancelOrder((int) $params['id']); }
 
-    if (match_route($uri, '/admin/orders/{id}/update', $params)) {
+    elseif (match_route($uri, '/admin/orders/{id}/update', $params)) {
         $orderId = (int)$params['id'];
         (new AdminController())->orderUpdate($orderId);
-        exit;
     }
     elseif($uri === '/admin/products/add') {
         (new AdminController())->productCreate();
-        exit;
     }
     elseif (match_route($uri, '/admin/products/{id}', $params))            { (new AdminController())->productUpdate((int) $params['id']); }
     
     elseif (match_route($uri, '/admin/products/{id}/edit', $params)) {
         $productId = (int)$params['id'];
         (new AdminController())->productEdit($productId);
-        exit;
     }
     elseif ($uri === '/admin/products') {
         (new AdminController())->productsList();
-        exit;
     }
     elseif (match_route($uri, '/admin/inventory/{id}/restock', $params))   { (new AdminController())->restock((int) $params['id']); }
     elseif ($uri === '/admin/slots')                                        { (new AdminController())->slotCreate(); }
     elseif ($uri === '/admin/slots/bulk')                                   { (new AdminController())->slotBulkCreate(); }
     elseif (match_route($uri, '/admin/slots/{id}/delete', $params))        { (new AdminController())->slotDelete((int) $params['id']); }
     
-    // Category Creation & Structural Data Modifications Post Hooks
     elseif ($uri === '/admin/categories')                                   { (new AdminController())->categoryCreate(); }
     
-    // 🌟 FIX: Handle incoming POST update form requests targeting modified schema objects
     elseif ($uri === '/admin/categories/update' || match_route($uri, '/admin/categories/{id}/update', $params)) {
         $categoryId = !empty($params['id']) ? (int)$params['id'] : (int)($_POST['id'] ?? 0);
-        $controller = new AdminController();
-        $controller->categoryEdit($categoryId);
-        exit;
+        (new AdminController())->categoryEdit($categoryId);
     }
     
-    // Category Deletion Form Request Endpoint Hook
     elseif ($uri === '/admin/categories/delete')                            { (new AdminController())->categoryDelete(); }
     
-    // 📥 Relational Split User/Customer Form Post Data Target Handler
     elseif ($uri === '/admin/customers')                                    { (new AdminController())->customerCreate(); }
     
     elseif ($uri === '/admin/settings/logo')                                { (new AdminController())->updateLogo(); }
@@ -225,3 +214,6 @@ if ($method === 'GET') {
     http_response_code(405); 
     echo 'Method not allowed.'; 
 }
+
+// Flush clean output buffer streams perfectly
+ob_end_flush();

@@ -244,6 +244,37 @@ class AdminController
     public function productCreate()
     {
         verifyCsrf();
+
+        $imageFilename = 'default.jpg';
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+    
+            $fileTmpPath = $_FILES['image']['tmp_name'];
+            $fileName    = $_FILES['image']['name'];
+            $fileSize    = $_FILES['image']['size'];
+            $fileType    = $_FILES['image']['type'];
+            
+            // Extract file extension cleanly
+            $fileNameCmps = explode(".", $fileName);
+            $fileExtension = strtolower(end($fileNameCmps));
+            
+            // Sanitize and secure the filename to prevent collision errors
+            // Generates names like: prod_64593bc1a23e5.png
+            $newFileName = 'prod_' . uniqid() . '.' . $fileExtension;
+            
+            // Enforce whitelist constraint rules on common image formats
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            
+            if (in_array($fileExtension, $allowedExtensions)) {
+                // Absolute destination folder mapping layout path
+                $uploadFileDir = __DIR__ . '/../../public/uploads/products/';
+                $dest_path = $uploadFileDir . $newFileName;
+                
+                // Execute block relocation from temporary memory cache down to drive disk
+                if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                    $imageFilename = $newFileName; // 🌟 SUCCESS: Assign the new clean filename string
+                }
+            }
+        }
         
         // 1. Prepare data matching your exact 'products' table columns (Image 1)
         $productData = [
@@ -256,16 +287,12 @@ class AdminController
             'sale_price'    => !empty($_POST['sale_price']) ? (float)$_POST['sale_price'] : null,
             'unit'          => trim($_POST['unit'] ?? ''),
             'stock'         => (int)($_POST['quantity'] ?? 0), // Base main table stock field mirroring inventory
+            'image'         => $imageFilename,
             'is_featured'   => (int)($_POST['is_featured'] ?? 0),
             'is_active'     => (int)($_POST['is_active'] ?? 1)
         ];
 
-        // Handle Image file upload if present
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            // Your custom file processor logic here (e.g., $productData['image'] = $fileName;)
-        } else {
-            $productData['image'] = 'default.jpg';
-        }
+           
 
         try {
             // Begin Transaction if your DB wrapper supports it

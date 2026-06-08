@@ -83,7 +83,11 @@ class WishlistController
             ]);
         } catch (Exception $e) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Internal database runtime transactional exception error.']);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Internal database runtime transactional exception error.',
+                'debug_error' => $e->getMessage()
+            ]);
         }
         exit;
     }
