@@ -6,7 +6,7 @@
         <p class="subtitle-context">Business-domain client listings, customer demographic records, and metrics.</p>
     </div>
     <a href="<?= APP_URL ?>/admin/customers/new" class="btn btn-primary" style="background-color: #10b981; color: white; padding: 10px 18px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-        <span>➕</span> Register New Customer
+        <span></span> Register New Customer
     </a>
 </div>
 

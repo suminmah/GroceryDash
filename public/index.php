@@ -112,8 +112,20 @@ if ($method === 'GET') {
     
     // ⚙️ ADMINISTRATIVE SUBSYSTEM WORKFLOW ROUTING (GET)
     elseif (in_array($uri, ['/admin', '/admin/dashboard']))           { (new AdminController())->dashboard(); }
-    elseif ($uri === '/admin/orders')                                 { (new AdminController())->ordersList(); }
-    elseif (match_route($uri, '/admin/orders/{id}', $params))        { (new AdminController())->orderDetail((int) $params['id']); }
+    if (match_route($uri, '/admin/orders/{id}/edit', $params)) {
+        $orderId = (int)$params['id'];
+        (new AdminController())->orderEdit($orderId);
+        exit;
+    }
+    elseif (match_route($uri, '/admin/orders/{id}', $params)) {
+        $orderId = (int)$params['id'];
+        (new AdminController())->orderDetail($orderId);
+        exit;
+    }
+    elseif ($uri === '/admin/orders' || match_route($uri, '/admin/orders')) {
+        (new AdminController())->ordersList();
+        exit;
+    }
     elseif ($uri === '/admin/products')                               { (new AdminController())->productsList(); }
     elseif ($uri === '/admin/products/new')                           { (new AdminController())->productForm(); }
     elseif (match_route($uri, '/admin/products/{id}/edit', $params)) { (new AdminController())->productEdit((int) $params['id']); }
@@ -160,6 +172,11 @@ if ($method === 'GET') {
     elseif (match_route($uri, '/order/cancel/{id}', $params))               { (new CheckoutController())->cancel((int) $params['id']); }
     elseif (match_route($uri, '/admin/orders/{id}/status', $params))        { (new AdminController())->updateOrderStatus((int) $params['id']); }
     elseif (match_route($uri, '/admin/orders/{id}/cancel', $params))        { (new AdminController())->cancelOrder((int) $params['id']); }
+    if (match_route($uri, '/admin/orders/{id}/update', $params)) {
+        $orderId = (int)$params['id'];
+        (new AdminController())->orderUpdate($orderId);
+        exit;
+    }
     elseif ($uri === '/admin/products')                                     { (new AdminController())->productCreate(); }
     elseif (match_route($uri, '/admin/products/{id}', $params))            { (new AdminController())->productUpdate((int) $params['id']); }
     elseif (match_route($uri, '/admin/inventory/{id}/restock', $params))   { (new AdminController())->restock((int) $params['id']); }

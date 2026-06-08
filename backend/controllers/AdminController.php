@@ -128,14 +128,61 @@ class AdminController
         ]);
     }
 
+    public function orderEdit(int $orderId)
+    {
+        // 1. Extract database structural payload data points from the model layer
+        // Uses the fixed, resilient method we updated earlier
+        $order = $this->orders->findById($orderId);
+
+        // 2. Defensive Exception Guard: Throw explicit 404 fallback code if ID is corrupted or non-existent
+        if (!$order) {
+            http_response_code(404);
+            flash('error', 'The requested transaction token could not be mapped to an active database entity record.');
+            redirect(APP_URL . '/admin/orders');
+        }
+
+        // 3. Render the update sub-view dashboard panel framework
+        $this->render('order-edit', 'Modify Order Record — Admin', [
+            'order' => $order
+        ]);
+    }
+
+    /**
+     * POST /admin/orders/{id}/update
+     * Safe atomic processing stream to commit database status modification values.
+     */
+    public function orderUpdate(int $orderId)
+    {
+        verifyCsrf();
+        
+        $status       = trim($_POST['status'] ?? 'pending');
+        $paymentState = trim($_POST['payment_status'] ?? 'pending');
+
+        $updated = $this->orders->updateStatus($orderId, $status, $paymentState);
+
+        if ($updated) {
+            if(function_exists('flash')) {
+                flash('success', "Order #{$orderId} details saved successfully.");
+            } else {
+                if(function_exists('flash')) {
+                    flash('error', "Failed to write updates of Order #{$orderId}.");
+                }
+            }
+        }
+
+        header('Location: ' . APP_URL . '/admin/orders');
+        exit;
+    }
+
     /** POST /admin/orders/{id}/status */
     public function updateOrderStatus(int $orderId)
     {
         verifyCsrf();
         $status = trim($_POST['status'] ?? '');
+        $paymentState = trim($_POST['payment_status'] ?? 'Pending');
 
         try {
-            $this->orders->updateStatus($orderId, $status);
+            $this->orders->updateStatus($orderId, $status, $paymentState);
             flash('success', "Order #{$orderId} status updated to {$status}.");
         } catch (InvalidArgumentException $e) {
             flash('error', $e->getMessage());

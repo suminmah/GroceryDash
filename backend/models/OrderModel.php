@@ -58,7 +58,7 @@ class OrderModel
                      u.email AS customer_email
              FROM    orders         o
              LEFT    JOIN Delivery_Slots ds ON ds.slot_id = o.delivery_slot_id
-             JOIN    users          u  ON u.id       = o.user_id
+             LEFT   JOIN users          u  ON u.id       = o.user_id
              WHERE   o.id = :id
              LIMIT   1"
         );
@@ -172,6 +172,7 @@ class OrderModel
                     o.user_id,
                     o.total,
                     o.status,
+                    o.payment_status,
                     o.delivery_slot_id,
                     o.created_at,
                     c.name AS user_name,  -- Safely mapping to the expected view variable alias
@@ -341,104 +342,113 @@ class OrderModel
      * @return int  New order id
      */
     public function create(array $data, array $items): int
-{
-    $this->db->beginTransaction();
-    try {
-        // 1. Generate Order Number
-        $datePrefix = date('Ymd');
-        $stmt = $this->db->prepare(
-            "SELECT order_number 
-            FROM orders 
-            WHERE order_number LIKE ? ORDER BY id DESC LIMIT 1"
-        );
-        $stmt->execute(["ORD-{$datePrefix}-%"]);
-        $last = $stmt->fetchColumn();
-        $parts = explode('-', $last);
-        $newSeq = $last ? str_pad((int)end($parts) + 1, 4, '0', STR_PAD_LEFT) : '0001';
-        $orderNumber = "ORD-{$datePrefix}-{$newSeq}";
+    {
+        $this->db->beginTransaction();
+        try {
+            // 1. Generate Order Number
+            $datePrefix = date('Ymd');
+            $stmt = $this->db->prepare(
+                "SELECT order_number 
+                FROM orders 
+                WHERE order_number LIKE ? ORDER BY id DESC LIMIT 1"
+            );
+            $stmt->execute(["ORD-{$datePrefix}-%"]);
+            $last = $stmt->fetchColumn();
+            $parts = explode('-', $last);
+            $newSeq = $last ? str_pad((int)end($parts) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+            $orderNumber = "ORD-{$datePrefix}-{$newSeq}";
 
-        // 2. Insert Main Order
-        // Note: Using 'id' from your image_df335f.png as the PK
-        $sqlOrder = "INSERT INTO orders 
-            (order_number, user_id, subtotal, delivery_fee, discount, total, status, payment_method, payment_status, delivery_address, delivery_slot_id, notes) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        $stmtOrder = $this->db->prepare($sqlOrder);
-        $stmtOrder->execute([
-            $orderNumber,
-            $data['user_id'] ? (int)$data['user_id'] : null,
-            (float)($data['subtotal'] ?? 0),
-            (float)($data['delivery_fee'] ?? 0),
-            (float)($data['discount'] ?? 0),
-            (float)($data['total'] ?? 0),
-            'pending',
-            $data['payment_method'] ?? 'cod',
-            'pending',
-            $data['delivery_address'],
-            (int)$data['delivery_slot_id'],
-            $data['notes'] ?? ''
-        ]);
-
-        // 3. GET THE ID IMMEDIATELY
-        $orderId = (int)$this->db->lastInsertId();
-        
-        if ($orderId <= 0) {
-            throw new RuntimeException("Failed to get Order ID.");
-        }
-
-        // 4. Insert Items (Matching your order_items structure)
-        $sqlItems = "INSERT INTO order_items (order_id, product_id, name, quantity, price) VALUES (?, ?, ?, ?, ?)";
-        $stmtItems = $this->db->prepare($sqlItems);
-
-        foreach ($items as $item) {
-            $itemName = !empty($item['name']) ? $item['name'] : "Item #{$item['product_id']}";
-            $stmtItems->execute([
-                $orderId,
-                (int)$item['product_id'],
-                $itemName,
-                (int)$item['quantity'],
-                (float)$item['price']
+            // 2. Insert Main Order
+            // Note: Using 'id' from your image_df335f.png as the PK
+            $sqlOrder = "INSERT INTO orders 
+                (order_number, user_id, subtotal, delivery_fee, discount, total, status, payment_method, payment_status, delivery_address, delivery_slot_id, notes) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            $stmtOrder = $this->db->prepare($sqlOrder);
+            $stmtOrder->execute([
+                $orderNumber,
+                $data['user_id'] ? (int)$data['user_id'] : null,
+                (float)($data['subtotal'] ?? 0),
+                (float)($data['delivery_fee'] ?? 0),
+                (float)($data['discount'] ?? 0),
+                (float)($data['total'] ?? 0),
+                'pending',
+                $data['payment_method'] ?? 'cod',
+                'pending',
+                $data['delivery_address'],
+                (int)$data['delivery_slot_id'],
+                $data['notes'] ?? ''
             ]);
 
-            // 5. Update Stock in products table
-            $updateStock = $this->db->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
-            $updateStock->execute([(int)$item['quantity'], (int)$item['product_id']]);
-        }
+            // 3. GET THE ID IMMEDIATELY
+            $orderId = (int)$this->db->lastInsertId();
+            
+            if ($orderId <= 0) {
+                throw new RuntimeException("Failed to get Order ID.");
+            }
 
-        $this->db->commit();
-        return $orderId;
+            // 4. Insert Items (Matching your order_items structure)
+            $sqlItems = "INSERT INTO order_items (order_id, product_id, name, quantity, price) VALUES (?, ?, ?, ?, ?)";
+            $stmtItems = $this->db->prepare($sqlItems);
 
-    } catch (Throwable $e) {
-        if ($this->db->inTransaction()) {
-            $this->db->rollBack();
+            foreach ($items as $item) {
+                $itemName = !empty($item['name']) ? $item['name'] : "Item #{$item['product_id']}";
+                $stmtItems->execute([
+                    $orderId,
+                    (int)$item['product_id'],
+                    $itemName,
+                    (int)$item['quantity'],
+                    (float)$item['price']
+                ]);
+
+                // 5. Update Stock in products table
+                $updateStock = $this->db->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
+                $updateStock->execute([(int)$item['quantity'], (int)$item['product_id']]);
+            }
+
+            $this->db->commit();
+            return $orderId;
+
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Order Error: " . $e->getMessage());
+            throw $e;
         }
-        error_log("Order Error: " . $e->getMessage());
-        throw $e;
     }
-}
 
     // ─────────────────────────────────────────────────────────
     //  WRITE — status updates
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Update order status — guards against invalid values.
-     * Used by: admin order management
+     * Commits both order fulfillment lifecycle changes and invoice financial 
+     * status updates to the database repository layers.
+     * * @param int $orderId
+     * @param string $status        (pending, packed, delivered, cancelled)
+     * @param string $paymentState  (pending, paid, refunded, failed)
+     * @return bool
      */
-    public function updateStatus(int $orderId, string $status)
+    public function updateStatus(int $orderId, string $status, string $paymentState): bool
     {
-        // Ensure you target your PDO connection variable name correctly
-        $sql = "UPDATE orders SET status = :status WHERE id = :id";
-        $stmt = $this->db->prepare($sql); 
-        
-        $success = $stmt->execute([
-            ':status' => $status,
-            ':id'     => $orderId
-        ]);
+        // Clean string states to prevent casing anomalies from failing ENUM matching rules
+        $status       = strtolower(trim($status));
+        $paymentState = strtolower(trim($paymentState));
 
-        if (!$success) {
-            throw new InvalidArgumentException("Database failed to update the record parameters.");
-        }
+        // 🌟 FIX: Include payment_status in your SQL update query string
+        $sql = "UPDATE orders 
+                SET status = :status, 
+                    payment_status = :payment_status 
+                WHERE id = :id";
+                
+        $stmt = $this->db->prepare($sql);
+        
+        return $stmt->execute([
+            ':status'         => $status,
+            ':payment_status' => $paymentState,
+            ':id'             => $orderId
+        ]);
     }
 
     /**
