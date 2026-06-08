@@ -309,20 +309,39 @@ class ProductModel
      *                price:float, is_perishable:bool} $data
      * @return int  New product_id
      */
-    public function create(array $data): int
+    public function create(array $data)
     {
-        $stmt = $this->db->prepare(
-            "INSERT INTO products (slug, name, category_id, price, image)
-            VALUES (:slug, :name, :cat, :price, :img)"
-        );
+        // Ensure accurate exception handling is turned on natively inside this model instance execution framework
+        $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $sql = "INSERT INTO products (
+                    category_id, name, slug, description, price, 
+                    is_perishable, sale_price, unit, stock, image, is_featured, is_active
+                ) VALUES (
+                    :category_id, :name, :slug, :description, :price, 
+                    :is_perishable, :sale_price, :unit, :stock, :image, :is_featured, :is_active
+                )";
+                
+        $stmt = $this->db->prepare($sql);
+        
+        // Bind values safely to guard column values string constraints cleanly
         $stmt->execute([
-            ':slug'  => trim($data['slug']),
-            ':name'  => trim($data['name']),
-            ':cat'   => (int)$data['category_id'],
-            ':price' => (float)$data['price'],
-            ':img'   => $data['image'] ?? null
+            ':category_id'   => $data['category_id'],
+            ':name'          => $data['name'],
+            ':slug'          => $data['slug'],
+            ':description'   => $data['description'],
+            ':price'         => $data['price'],
+            ':is_perishable' => $data['is_perishable'],
+            ':sale_price'    => $data['sale_price'],
+            ':unit'          => $data['unit'],
+            ':stock'         => $data['stock'],
+            ':image'         => $data['image'],
+            ':is_featured'   => $data['is_featured'],
+            ':is_active'     => $data['is_active']
         ]);
-        return (int) $this->db->lastInsertId();
+
+        // Return the inserted row auto-increment tracker index key value
+        return $this->db->lastInsertId();
     }
 
     /**

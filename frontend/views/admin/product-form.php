@@ -1,20 +1,139 @@
-<?php $pageTitle = $pageTitle ?? 'Add Product — Admin'; 
-require __DIR__ . '/../layouts/header.php'; 
-$product = $product ?? null;
+<?php 
+$product = $product ?? [];
+$isEdit = isset($product) && !empty($product['id']);
+$formAction = $isEdit ? APP_URL . "/admin/products/{$product['id']}/edit" : APP_URL . "/admin/products/add";
 ?>
 
-<h1><?= $product ? 'Edit' : 'Add' ?> Product</h1>
-<form method="POST" action="<?= APP_URL ?>/admin/products<?= $product ? '/' . $product['product_id'] : '' ?>">
-    <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
-    <label>Name: <input type="text" name="name" value="<?= e($product['name'] ?? '') ?>" required></label>
-    <label>Category: 
-        <select name="category_id">
-            <?php foreach ($categories as $cat): ?>
-                <option value="<?= $cat['id'] ?>" <?= (isset($product['category_id']) && $product['category_id'] == $cat['id']) ? 'selected' : '' ?>><?= e($cat['name']) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </label>
-    <label>Price: <input type="number" step="0.01" name="price" value="<?= $product['price'] ?? '' ?>" required></label>
-    <button type="submit">Save</button>
-</form>
-<?php require __DIR__ . '/../layouts/footer.php'; ?>
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h1 class="font-weight-bold text-dark h3 mb-1"><?= $isEdit ? 'Edit Product Catalog Item' : 'Add New Inventory Item' ?></h1>
+            <p class="text-muted small mb-0">Dual database table insertion sync system: <code>products</code> + <code>inventory</code></p>
+        </div>
+        <a href="<?= APP_URL ?>/admin/products" class="btn btn-sm btn-light border text-secondary shadow-sm">
+            <i class="bi bi-arrow-left"></i> Cancel and Return
+        </a>
+    </div>
+
+    <form action="<?= $formAction ?>" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+        <?php if (function_exists('csrfTokenField')) { csrfTokenField(); } ?>
+
+        <div class="row g-4">
+            <div class="col-xl-8 col-lg-7">
+                <div class="card shadow-sm border-0 rounded mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="card-title text-dark font-weight-bold mb-4" style="font-size: 1.1rem;">Core Product Metrics</h5>
+                        
+                        <div class="mb-4">
+                            <label for="name" class="form-label text-muted small font-weight-bold">Product Name *</label>
+                            <input type="text" name="name" id="name" class="form-control" value="<?= htmlspecialchars($product['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="e.g., Fresh Tomatoes" required autocomplete="off">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label text-muted small font-weight-bold">Product Description</label>
+                            <textarea name="description" id="description" class="form-control" rows="4" placeholder="Provide description summary text..."><?= htmlspecialchars($product['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 rounded">
+                    <div class="card-body p-4">
+                        <h5 class="card-title text-dark font-weight-bold mb-4" style="font-size: 1.1rem;">Financials & Warehouse Stock Allocation</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="price" class="form-label text-muted small font-weight-bold">Base Price (Rs.) *</label>
+                                <input type="number" step="0.01" min="0" name="price" id="price" class="form-control" value="<?= htmlspecialchars((string)($product['price'] ?? '')) ?>" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="sale_price" class="form-label text-muted small font-weight-bold">Sale Price (Rs.)</label>
+                                <input type="number" step="0.01" min="0" name="sale_price" id="sale_price" class="form-control" value="<?= htmlspecialchars((string)($product['sale_price'] ?? '')) ?>" placeholder="Optional">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="quantity" class="form-label text-muted small font-weight-bold">Initial Inventory Quantity *</label>
+                                <input type="number" min="0" name="quantity" id="quantity" class="form-control" value="<?= isset($product['quantity']) ? (int)$product['quantity'] : (isset($product['stock']) ? (int)$product['stock'] : '') ?>" placeholder="e.g., 150" required>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label for="unit" class="form-label text-muted small font-weight-bold">Measurement Unit Designation</label>
+                                <input type="text" name="unit" id="unit" class="form-control" value="<?= htmlspecialchars($product['unit'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="e.g., 500g, 1 dozen, 1 L">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-lg-5">
+                <div class="card shadow-sm border-0 rounded mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="card-title text-dark font-weight-bold mb-3" style="font-size: 1.1rem;">Taxonomy & Marketing Flags</h5>
+                        
+                        <div class="mb-3">
+                            <label for="category_id" class="form-label text-muted small font-weight-bold">Category Relation Assignment *</label>
+                            <select name="category_id" id="category_id" class="form-select" required>
+                                <option value="" disabled <?= !$isEdit ? 'selected' : '' ?>>Select active node...</option>
+                                
+                                <?php if (!empty($categories)): ?>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <?php 
+                                        // Safely extract the ID depending on whether it's an object or an array row array matrix
+                                        $catId = is_array($cat) ? (int)$cat['id'] : (int)$cat->id;
+                                        $catName = is_array($cat) ? $cat['name'] : $cat->name;
+                                        
+                                        $match = ($isEdit && (int)$product['category_id'] === $catId) ? 'selected' : ''; 
+                                        ?>
+                                        <option value="<?= $catId ?>" <?= $match ?>><?= htmlspecialchars($catName, ENT_QUOTES, 'UTF-8') ?></option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <option value="" disabled>No categories found in database. Please create one first.</option>
+                                <?php endif; ?>
+                            </select>
+                            <div class="invalid-feedback">Please map this inventory profile to a primary department category node.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="is_perishable" class="form-label text-muted small font-weight-bold d-block">Is Perishable Cold-Chain?</label>
+                            <select name="is_perishable" id="is_perishable" class="form-select">
+                                <option value="0" <?= (isset($product['is_perishable']) && (int)$product['is_perishable'] === 0) ? 'selected' : '' ?>>No (Ambient Stability)</option>
+                                <option value="1" <?= (isset($product['is_perishable']) && (int)$product['is_perishable'] === 1) ? 'selected' : '' ?>>Yes (Requires Refrigeration)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="is_featured" class="form-label text-muted small font-weight-bold d-block">Featured Item Placement</label>
+                            <select name="is_featured" id="is_featured" class="form-select">
+                                <option value="0" <?= (isset($product['is_featured']) && (int)$product['is_featured'] === 0) ? 'selected' : '' ?>>Standard Listing</option>
+                                <option value="1" <?= (isset($product['is_featured']) && (int)$product['is_featured'] === 1) ? 'selected' : '' ?>>Promote to Featured Carousel</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="is_active" class="form-label text-muted small font-weight-bold d-block">Visibility State</label>
+                            <select name="is_active" id="is_active" class="form-select">
+                                <option value="1" <?= (!isset($product['is_active']) || (int)$product['is_active'] === 1) ? 'selected' : '' ?>>Active (Visible Live)</option>
+                                <option value="0" <?= (isset($product['is_active']) && (int)$product['is_active'] === 0) ? 'selected' : '' ?>>Draft (Hidden)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 rounded mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="card-title text-dark font-weight-bold mb-3" style="font-size: 1.1rem;">Media Resource Asset</h5>
+                        <div class="border border-2 border-dashed rounded p-3 text-center bg-light position-relative">
+                            <i class="bi bi-image text-secondary h4 d-block mb-1"></i>
+                            <span class="small text-muted d-block">Select Catalog Thumbnail</span>
+                            <input type="file" name="image" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" accept="image/*">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn <?= $isEdit ? 'btn-warning text-dark font-weight-bold' : 'btn-success' ?> w-100 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-1">
+                    <i class="bi bi-cloud-check-fill"></i>
+                    <?= $isEdit ? 'Commit Structural Changes' : 'Execute Relational Inserts' ?>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

@@ -244,25 +244,46 @@ class AdminController
     public function productCreate()
     {
         verifyCsrf();
-        $data = [
-            'sku'           => trim($_POST['sku'] ?? ''),
-            'name'          => trim($_POST['name'] ?? ''),
+        
+        // 1. Prepare data matching your exact 'products' table columns (Image 1)
+        $productData = [
             'category_id'   => (int)($_POST['category_id'] ?? 0),
+            'name'          => trim($_POST['name'] ?? ''),
+            'slug'          => trim(strtolower(str_replace(' ', '-', $_POST['name'] ?? ''))), // Auto-generate slug
+            'description'   => !empty($_POST['description']) ? trim($_POST['description']) : null,
             'price'         => (float)($_POST['price'] ?? 0),
             'is_perishable' => (int)($_POST['is_perishable'] ?? 0),
+            'sale_price'    => !empty($_POST['sale_price']) ? (float)$_POST['sale_price'] : null,
+            'unit'          => trim($_POST['unit'] ?? ''),
+            'stock'         => (int)($_POST['quantity'] ?? 0), // Base main table stock field mirroring inventory
+            'is_featured'   => (int)($_POST['is_featured'] ?? 0),
+            'is_active'     => (int)($_POST['is_active'] ?? 1)
         ];
 
+        // Handle Image file upload if present
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            // Your custom file processor logic here (e.g., $productData['image'] = $fileName;)
+        } else {
+            $productData['image'] = 'default.jpg';
+        }
+
         try {
-            $productId = $this->products->create($data);
+            // Begin Transaction if your DB wrapper supports it
+            
+            // Insert into products table and fetch the new primary key ID
+            $productId = $this->products->create($productData);
+            
+            // 🌟 THE CRITICAL SCHEMA FIX: Map 'quantity' precisely to match your inventory table layout!
             $this->inventory->create([
-                'product_id'       => $productId,
-                'stock_qty'        => (int)($_POST['stock_qty'] ?? 0),
-                'buffer_threshold' => (int)($_POST['buffer_threshold'] ?? 0),
+                'product_id' => $productId,
+                'quantity'   => (int)($_POST['quantity'] ?? 0), // Fixed from 'stock_qty' -> 'quantity'
             ]);
-            flash('success', 'Product created successfully.');
+            
+            flash('success', 'Product and matching inventory profile created successfully.');
             redirect(APP_URL . '/admin/products');
+            
         } catch (PDOException $e) {
-            flash('error', 'Could not create product record: ' . $e->getMessage());
+            flash('error', 'Could not save product record data metrics: ' . $e->getMessage());
             redirect(APP_URL . '/admin/products/new');
         }
     }

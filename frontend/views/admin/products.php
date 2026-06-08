@@ -13,7 +13,7 @@ $page       = (int)($page ?? 1);
 
 <div class="admin-view-header mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
     <div>
-        <h1 class="font-weight-bold text-dark m-0" style="font-size: 1.75rem; letter-spacing: -0.025em;">Products Catalog</h1>
+        <h1 class="font-weight-bold text-dark m-0" style="font-size: 1.75rem; letter-spacing: -0.025em;">Products Management</h1>
         <p class="text-muted m-0" style="font-size: 0.9rem;">Manage inventory stock, pricing metrics, and retail classification matrices.</p>
     </div>
     <a href="<?= APP_URL ?>/admin/products/new" class="btn btn-success d-inline-flex align-items-center" style="border-radius: 8px; padding: 10px 20px; font-weight: 500;">
@@ -25,7 +25,7 @@ $page       = (int)($page ?? 1);
     <table class="admin-table w-100 m-0">
         <thead>
             <tr>
-                <th style="width: 10%;">ID Mapping</th>
+                <th style="width: 10%;">Product ID</th>
                 <th style="width: 45%;">Item Description</th>
                 <th style="width: 15%;">Unit Cost</th>
                 <th style="width: 15%;">Stock Level</th>

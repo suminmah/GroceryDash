@@ -82,7 +82,7 @@ if ($method === 'GET') {
     if ($uri === '/' || $uri === '')                                 { (new ShopController())->home(); }
     elseif ($uri === '/shop')                                         { (new ShopController())->shop(); }
     elseif (match_route($uri, '/product/{id}', $params))              { (new ShopController())->detail((int) $params['id']); }
-    elseif (match_route($uri, '/category/{id}', $params))             { (new ShopController())->category((int) $params['id']); }
+        elseif (match_route($uri, '/category/{id}', $params))             { (new ShopController())->category((int) $params['id']); }
     elseif ($uri === '/search')                                       { (new ShopController())->search(); }
     elseif ($uri === '/cart') {
         require_once __DIR__ . '/../backend/models/ProductModel.php';
@@ -172,13 +172,27 @@ if ($method === 'GET') {
     elseif (match_route($uri, '/order/cancel/{id}', $params))               { (new CheckoutController())->cancel((int) $params['id']); }
     elseif (match_route($uri, '/admin/orders/{id}/status', $params))        { (new AdminController())->updateOrderStatus((int) $params['id']); }
     elseif (match_route($uri, '/admin/orders/{id}/cancel', $params))        { (new AdminController())->cancelOrder((int) $params['id']); }
+
     if (match_route($uri, '/admin/orders/{id}/update', $params)) {
         $orderId = (int)$params['id'];
         (new AdminController())->orderUpdate($orderId);
         exit;
     }
-    elseif ($uri === '/admin/products')                                     { (new AdminController())->productCreate(); }
+    elseif($uri === '/admin/products/add') {
+        (new AdminController())->productCreate();
+        exit;
+    }
     elseif (match_route($uri, '/admin/products/{id}', $params))            { (new AdminController())->productUpdate((int) $params['id']); }
+    
+    elseif (match_route($uri, '/admin/products/{id}/edit', $params)) {
+        $productId = (int)$params['id'];
+        (new AdminController())->productEdit($productId);
+        exit;
+    }
+    elseif ($uri === '/admin/products') {
+        (new AdminController())->productsList();
+        exit;
+    }
     elseif (match_route($uri, '/admin/inventory/{id}/restock', $params))   { (new AdminController())->restock((int) $params['id']); }
     elseif ($uri === '/admin/slots')                                        { (new AdminController())->slotCreate(); }
     elseif ($uri === '/admin/slots/bulk')                                   { (new AdminController())->slotBulkCreate(); }
