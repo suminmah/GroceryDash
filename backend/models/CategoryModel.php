@@ -93,16 +93,14 @@ class CategoryModel
      *
      * @return array|null
      */
-    public function findById(int $categoryId): ?array
+    public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT id, name, parent_id
-             FROM   Categories
-             WHERE  id = :id
-             LIMIT  1"
-        );
-        $stmt->execute([':id' => $categoryId]);
-        return $stmt->fetch() ?: null;
+        $sql = "SELECT * FROM categories WHERE id = :id LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -211,24 +209,27 @@ class CategoryModel
      */
     public function create(array $data): bool
     {
-        $sql = "INSERT INTO categories (name, slug, parent_id, created_by, created_at) 
-                VALUES (:name, :slug, :parent_id, :created_by, NOW())";
+        $sql = "INSERT INTO categories (name, parent_id, slug, is_active, sort_order, created_by) 
+                VALUES (:name, :parent_id, :slug, :is_active, :sort_order, :created_by)";
 
         $stmt = $this->db->prepare($sql);
 
         // Use explicit parameter binding to gracefully handle the structural NULL transition
         $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
         $stmt->bindValue(':slug', $data['slug'], PDO::PARAM_STR);
+
+        $stmt->bindValue(':is_active', (int)$data['is_active'], PDO::PARAM_INT);
+        $stmt->bindValue(':sort_order', (int)$data['sort_order'], PDO::PARAM_INT);
         
         // Bind as NULL if parent_id is missing, otherwise bind as an integer
-        if ($data['parent_id'] === null) {
+        if ($data['parent_id'] === null || $data['parent_id'] === '') {
             $stmt->bindValue(':parent_id', null, PDO::PARAM_NULL);
         } else {
             $stmt->bindValue(':parent_id', $data['parent_id'], PDO::PARAM_INT);
         }
 
         // Bind your administrative creator logging field safely
-        if (($data['created_by'] ?? null) === null) {
+        if (($data['created_by'] ?? null) === null || $data['created_by'] === '') {
             $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
         } else {
             $stmt->bindValue(':created_by', (int)$data['created_by'], PDO::PARAM_INT);
@@ -242,19 +243,43 @@ class CategoryModel
      *
      * @return bool
      */
-    public function update(int $categoryId, array $data): bool
+    public function update(int $id, array $data): bool
     {
-        $stmt = $this->db->prepare(
-            "UPDATE Categories
+        $sql = "UPDATE Categories
              SET    name      = :name,
-                    parent_id = :pid
-             WHERE  id = :id"
-        );
-        return $stmt->execute([
-            ':name' => trim($data['name']),
-            ':pid'  => $data['parent_id'] ?? null,
-            ':id'   => $categoryId,
-        ]);
+                    parent_id = :pid,
+                    slug = :slug,
+                    is_active = :is_active,
+                    sort_order = :sort_order,
+                    created_by = :created_by
+             WHERE  id = :id";
+        
+        $stmt = $this->db->prepare($sql);
+
+        // Bind Core Parameters
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
+        $stmt->bindValue(':slug', $data['slug'], PDO::PARAM_STR);
+        
+        // Explicit integer casting prevents type mismatch drops
+        $stmt->bindValue(':is_active', (int)$data['is_active'], PDO::PARAM_INT);
+        $stmt->bindValue(':sort_order', (int)$data['sort_order'], PDO::PARAM_INT);
+
+        // Bind Nullable Parent ID safely
+        if ($data['parent_id'] === null || $data['parent_id'] === '') {
+            $stmt->bindValue(':parent_id', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':parent_id', (int)$data['parent_id'], PDO::PARAM_INT);
+        }
+
+        // Bind Nullable Creator Log safely
+        if (($data['created_by'] ?? null) === null || $data['created_by'] === '') {
+            $stmt->bindValue(':created_by', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':created_by', (int)$data['created_by'], PDO::PARAM_INT);
+        }
+
+        return $stmt->execute();
     }
 
     /**

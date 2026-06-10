@@ -266,7 +266,7 @@ class AdminController
             
             if (in_array($fileExtension, $allowedExtensions)) {
                 // Absolute destination folder mapping layout path
-                $uploadFileDir = __DIR__ . '/../../public/uploads/products/';
+                $uploadFileDir = __DIR__ . '/../../public/images/products/';
                 $dest_path = $uploadFileDir . $newFileName;
                 
                 // Execute block relocation from temporary memory cache down to drive disk
@@ -563,6 +563,94 @@ class AdminController
 
         // 4. Send the administrator back to the refreshed index panel view
         redirect(APP_URL . '/admin/categories');
+    }
+
+    public function categoryForm()
+    {
+        $categoryModel = new CategoryModel();
+        $errors = [];
+        
+        // 1. Determine State: Are we editing an existing row or adding a fresh one?
+        // Check both query strings (GET) and hidden inputs (POST)
+        $id = isset($_REQUEST['id']) ? (int)$_REQUEST['id'] : 0;
+        $isEdit = ($id > 0);
+
+        if ($isEdit) {
+            // Edit Mode: Fetch the real record from MySQL
+            $category = $categoryModel->findById($id);
+            if (!$category) {
+                http_response_code(404);
+                die("Database Error: Category ID #{$id} does not exist.");
+            }
+        } else {
+            // Add Mode: Initialize an empty schema template array
+            $category = [
+                'id'          => null,
+                'name'        => '',
+                'slug'        => '',
+                'parent_id'   => null,
+                'sort_order'  => 0,
+                'is_active'   => 1,
+                'created_by' => null
+            ];
+        }
+
+        // 2. Handle Form Submission (POST Data Processing)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Capture and scrub incoming payloads
+            $name        = trim($_POST['name'] ?? '');
+            $slug        = trim($_POST['slug'] ?? '');
+            $parent_id   = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+            $sort_order  = isset($_POST['sort_order']) ? (int)$_POST['sort_order'] : 0;
+            $is_active   = isset($_POST['is_active']) ? 1 : 0;
+            $created_by = !empty($_POST['created_by']) ? (int)$_POST['created_by'] : ($_SESSION['user_id']) ?? null;
+
+            // Shared Validation Engine Rule
+            if (empty($name)) {
+                $errors['name'] = 'Category name is strictly required.';
+            }
+
+            // Auto-slug generator fallback fallback logic
+            if (empty($slug) && !empty($name)) {
+                $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name), '-'));
+            }
+
+            // Keep form filled with what the user typed if errors occur
+            $category = [
+                'id'          => $isEdit ? $id : null,
+                'name'        => $name,
+                'slug'        => $slug,
+                'parent_id'   => $parent_id,
+                'sort_order'  => $sort_order,
+                'is_active'   => $is_active,
+                'created_by' => $created_by
+            ];
+
+            // 3. Execution Layer if Validation Passes
+            if (empty($errors)) {
+                if ($isEdit) {
+                    // Execute Database UPDATE
+                    $saved = $categoryModel->update($id, $category);
+                } else {
+                    // Execute Database CREATE (MySQL automatically assigns auto-increment ID)
+                    $saved = $categoryModel->create($category);
+                }
+
+                if ($saved) {
+                    // Flash clear state and redirect to index list view
+                    header('Location: /grocery-shop/public/admin/categories');
+                    exit;
+                } else {
+                    $errors['global'] = 'Database Write Error: Transaction aborted.';
+                }
+            }
+        }
+
+        // Fetch parent dropdown listings dynamically for the view dropdown matrix
+        $parentOptions = $categoryModel->getAll(); 
+
+        // 4. Render the unified view file
+        require_once __DIR__ . '/../../frontend/views/admin/category-edit.php';
     }
 
     // ─────────────────────────────────────────────────────────

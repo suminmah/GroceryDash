@@ -263,6 +263,95 @@ aside .nav-link i {
     transform: translateY(-1px) !important;
 }
 
+/* ==========================================================================
+   📂 Added Components — Premium Admin CRUD Layout Additions
+   ========================================================================== */
+
+.card.shadow-sm {
+    border: none;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important;
+}
+
+.card-header {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.card-header h6 {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #4f46e5 !important;
+}
+
+.btn-premium-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    color: #ffffff !important;
+    font-weight: 500;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    text-decoration: none;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+}
+
+.btn-premium-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px -2px rgba(79, 70, 229, 0.3);
+    background: linear-gradient(135deg, #4338ca 0%, #2e2685 100%);
+}
+
+.form-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #334155;
+    margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    background-color: #f8fafc;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #ffffff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    outline: 0;
+}
+
+.form-switch .form-check-input {
+    width: 2.5em;
+    height: 1.25em;
+    background-color: #cbd5e1;
+    border-color: transparent;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+    transition: background-position 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #10b981;
+    background-position: right center;
+}
+
+.breadcrumb-item a {
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+}
+
 /* Stats grid – 4 responsive cards */
 .stats-grid {
     display: grid;

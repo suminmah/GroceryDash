@@ -17,7 +17,7 @@ require_once __DIR__ . '/../backend/controllers/CheckoutController.php';
 require_once __DIR__ . '/../backend/controllers/AdminController.php';
 require_once __DIR__ . '/../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../backend/controllers/OrderController.php';
-require_once __DIR__ . '/../backend/models/Category.php';
+require_once __DIR__ . '/../backend/models/CategoryModel.php';
 require_once __DIR__ . '/../backend/controllers/WishlistController.php';
 
 session_set_cookie_params([
@@ -37,9 +37,9 @@ if (function_exists('csrfToken')) {
     csrfToken(); // Ensure CSRF token is generated for the session
 }
 
-$method = $_SERVER['REQUEST_METHOD'];
-$rawuri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$base   = '/grocery-shop/public';
+$method  = $_SERVER['REQUEST_METHOD'];
+$rawuri  = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$base    = '/grocery-shop/public';
 
 if (str_starts_with($rawuri, $base)) {
     $uri = substr($rawuri, strlen($base));
@@ -116,7 +116,7 @@ if ($method === 'GET') {
     elseif ($uri === '/about')                                        { require __DIR__ . '/../frontend/views/pages/about.php'; }
     elseif ($uri === '/help')                                         { require __DIR__ . '/../frontend/views/pages/help.php'; }
     
-    // ⚙️ ADMINISTRATIVE SUBSYSTEM WORKFLOW ROUTING (GET) — Unified via clean conditional nesting
+    // ⚙️ ADMINISTRATIVE SUBSYSTEM WORKFLOW ROUTING (GET) — Unified via singular sequence chain
     elseif (in_array($uri, ['/admin', '/admin/dashboard']))           { (new AdminController())->dashboard(); }
     elseif (match_route($uri, '/admin/orders/{id}/edit', $params)) {
         $orderId = (int)$params['id'];
@@ -134,15 +134,18 @@ if ($method === 'GET') {
     elseif (match_route($uri, '/admin/products/{id}/edit', $params)) { (new AdminController())->productEdit((int) $params['id']); }
     elseif ($uri === '/admin/inventory')                              { (new AdminController())->inventoryList(); }
     elseif (match_route($uri, '/admin/inventory/{id}/restock', $params))   { (new AdminController())->inventoryList(); }
+    
+    // --- ⏰ Slot Systems ---
     elseif ($uri === '/admin/slots')                                  { (new AdminController())->slotsList(); }
+    elseif ($uri === '/admin/slots/new')                              { (new AdminController())->slotCreate(); }
+    elseif ($uri === '/admin/slots/bulk')                             { (new AdminController())->slotBulkCreate(); }
+    
+    // --- 📂 Category Systems ---
     elseif ($uri === '/admin/categories')                             { (new AdminController())->categoriesList(); }
-    elseif ($uri === '/admin/categories/new')                         { (new AdminController())->categoryCreate(); }
+    elseif ($uri === '/admin/categories/new')                         { (new AdminController())->categoryForm(); }
+    elseif ($uri === '/admin/categories/edit')                        { (new AdminController())->categoryForm(); }
     
-    elseif ($uri === '/admin/categories/edit' || match_route($uri, '/admin/categories/{id}/edit', $params)) {
-        $categoryId = !empty($params['id']) ? (int)$params['id'] : (int)($_GET['id'] ?? 0);
-        (new AdminController())->categoryEdit($categoryId);
-    }
-    
+    // --- 👥 User & Management Frameworks ---
     elseif ($uri === '/admin/users')                                  { (new AdminController())->usersIndex(); }
     elseif ($uri === '/admin/customers')                              { (new AdminController())->customersIndex(); }
     elseif ($uri === '/admin/customers/new')                          { (new AdminController())->customerForm(); }
@@ -162,15 +165,15 @@ if ($method === 'GET') {
 // 📤 OUTGOING HTTP POST REQUEST ROUTING MATRIX
 // ==========================================================================
 } elseif ($method === 'POST') {
-    if ($uri === '/login')                                                   { (new AuthController())->login(); }
-    elseif ($uri === '/register')                                           { (new AuthController())->register(); }
+    if ($uri === '/login')                                             { (new AuthController())->login(); }
+    elseif ($uri === '/register')                                      { (new AuthController())->register(); }
     elseif ($uri === '/cart/add') { require_once __DIR__ . '/../backend/controllers/CartController.php'; (new CartController())->add(); }
     elseif ($uri === '/cart/update') { require_once __DIR__ . '/../backend/controllers/CartController.php'; (new CartController())->update(); }
     elseif ($uri === '/cart/remove') { require_once __DIR__ . '/../backend/controllers/CartController.php'; (new CartController())->remove(); }
-    elseif ($uri === '/checkout')                                           { (new CheckoutController())->place(); }
-    elseif (match_route($uri, '/order/cancel/{id}', $params))               { (new CheckoutController())->cancel((int) $params['id']); }
-    elseif (match_route($uri, '/admin/orders/{id}/status', $params))        { (new AdminController())->updateOrderStatus((int) $params['id']); }
-    elseif (match_route($uri, '/admin/orders/{id}/cancel', $params))        { (new AdminController())->cancelOrder((int) $params['id']); }
+    elseif ($uri === '/checkout')                                      { (new CheckoutController())->place(); }
+    elseif (match_route($uri, '/order/cancel/{id}', $params))          { (new CheckoutController())->cancel((int) $params['id']); }
+    elseif (match_route($uri, '/admin/orders/{id}/status', $params))   { (new AdminController())->updateOrderStatus((int) $params['id']); }
+    elseif (match_route($uri, '/admin/orders/{id}/cancel', $params))   { (new AdminController())->cancelOrder((int) $params['id']); }
 
     elseif (match_route($uri, '/admin/orders/{id}/update', $params)) {
         $orderId = (int)$params['id'];
@@ -185,27 +188,22 @@ if ($method === 'GET') {
         $productId = (int)$params['id'];
         (new AdminController())->productEdit($productId);
     }
-    elseif ($uri === '/admin/products') {
-        (new AdminController())->productsList();
-    }
+    elseif ($uri === '/admin/products')                               { (new AdminController())->productsList(); }
     elseif (match_route($uri, '/admin/inventory/{id}/restock', $params))   { (new AdminController())->restock((int) $params['id']); }
-    elseif ($uri === '/admin/slots')                                        { (new AdminController())->slotCreate(); }
-    elseif ($uri === '/admin/slots/bulk')                                   { (new AdminController())->slotBulkCreate(); }
-    elseif (match_route($uri, '/admin/slots/{id}/delete', $params))        { (new AdminController())->slotDelete((int) $params['id']); }
     
-    elseif ($uri === '/admin/categories')                                   { (new AdminController())->categoryCreate(); }
+    // --- Slot Action Endpoints ---
+    elseif ($uri === '/admin/slots/new')                               { (new AdminController())->slotCreate(); }
+    elseif ($uri === '/admin/slots/bulk')                              { (new AdminController())->slotBulkCreate(); }
+    elseif (match_route($uri, '/admin/slots/{id}/delete', $params))    { (new AdminController())->slotDelete((int) $params['id']); }
     
-    elseif ($uri === '/admin/categories/update' || match_route($uri, '/admin/categories/{id}/update', $params)) {
-        $categoryId = !empty($params['id']) ? (int)$params['id'] : (int)($_POST['id'] ?? 0);
-        (new AdminController())->categoryEdit($categoryId);
-    }
+    // --- Category Action Endpoints ---
+    elseif ($uri === '/admin/categories/new')                          { (new AdminController())->categoryForm(); }
+    elseif ($uri === '/admin/categories/edit')                         { (new AdminController())->categoryForm(); }
+    elseif ($uri === '/admin/categories/delete')                       { (new AdminController())->categoryDelete(); }
     
-    elseif ($uri === '/admin/categories/delete')                            { (new AdminController())->categoryDelete(); }
-    
-    elseif ($uri === '/admin/customers')                                    { (new AdminController())->customerCreate(); }
-    
-    elseif ($uri === '/admin/settings/logo')                                { (new AdminController())->updateLogo(); }
-    elseif ($uri === '/wishlist/toggle')                                    { (new WishlistController())->toggle(); }
+    elseif ($uri === '/admin/customers')                               { (new AdminController())->customerCreate(); }
+    elseif ($uri === '/admin/settings/logo')                           { (new AdminController())->updateLogo(); }
+    elseif ($uri === '/wishlist/toggle')                               { (new WishlistController())->toggle(); }
     else { 
         http_response_code(405); 
         echo 'Method not allowed.'; 
