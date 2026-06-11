@@ -11,7 +11,7 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/admin.css">
+    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/admin.css?v=<?= time() ?>">
 
     <style>
         /* 🎨 Clean, Fluid Layout Style Reset overrides */
@@ -115,7 +115,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], 'categories') ? 'active bg-success text-white' : 'text-secondary' ?>" 
+                        <a class="nav-link <?= str_contains($_SERVER['REQUEST_URI'], 'admin/categories') ? 'active bg-success text-white' : 'text-secondary' ?>" 
                            href="<?= APP_URL ?>/admin/categories">
                             <i class="bi bi-tags me-2"></i> Categories
                         </a>

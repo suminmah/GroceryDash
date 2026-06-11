@@ -954,6 +954,173 @@ h1 {
     color: #2c3e2f;
 }
 
+/* ==========================================================================
+   🔒 Scoped Component Styles — Vanilla Category Form Configuration
+   ========================================================================== */
+
+/* 1. Base Structure Wrapper Canvas */
+.admin-main {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #334155;
+    line-height: 1.5;
+}
+
+/* 2. Form Labels & Headings */
+.admin-main h1 {
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.02em;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* 3. Inputs, Textareas, and Dropdown Elements */
+.admin-main .input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.95rem;
+    color: #334155;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-sizing: border-box;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Native Select Arrow Adjustments */
+select.input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 1.25rem;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+
+/* Focus and Validation States */
+.admin-main .input:focus {
+    outline: none;
+    background-color: #ffffff;
+    border-color: #10b981; /* Emerald Primary Focus Accent */
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.admin-main .input-error {
+    border-color: #dc3545 !important;
+    background-color: #fffafb !important;
+}
+
+.admin-main .input-error:focus {
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15) !important;
+}
+
+/* Custom Inline Switch Toggle Style */
+.admin-main input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 2.5rem;
+    height: 1.35rem;
+    background-color: #cbd5e1;
+    border-radius: 50px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.admin-main input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    top: 0.15rem;
+    left: 0.15rem;
+    background-color: #ffffff;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.admin-main input[type="checkbox"]:checked {
+    background-color: #10b981;
+}
+
+.admin-main input[type="checkbox"]:checked::before {
+    transform: translateX(1.15rem);
+}
+
+/* 4. Navigation Links and Component Action Buttons */
+.btn-secondary-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary-sm:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.btn-primary {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #10b981; /* Standardized Emerald Green */
+    border: 1px solid #10b981;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: #059669;
+    border-color: #059669;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.admin-main a[href*="categories"]:not(.btn-secondary-sm) {
+    transition: all 0.2s ease;
+}
+
+.admin-main a[href*="categories"]:not(.btn-secondary-sm):hover {
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+/* 5. Global Message Notifications Box */
+.flash {
+    padding: 0.875rem 1.25rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.flash-error {
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+    color: #991b1b;
+}
 
 
 /* ── Administrative Notification Alerts ── */

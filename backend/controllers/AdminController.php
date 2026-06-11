@@ -501,7 +501,7 @@ class AdminController
 
         } catch (Throwable $e) {
             flash('category_error', 'Failed to create category matrix: ' . $e->getMessage());
-            redirect(APP_URL . '/admin/categories');
+            redirect(APP_URL . '/admin/categories/new');
         }
     }
 
@@ -597,13 +597,14 @@ class AdminController
 
         // 2. Handle Form Submission (POST Data Processing)
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            verifyCsrf();
             // Capture and scrub incoming payloads
             $name        = trim($_POST['name'] ?? '');
             $slug        = trim($_POST['slug'] ?? '');
             $parent_id   = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
             $sort_order  = isset($_POST['sort_order']) ? (int)$_POST['sort_order'] : 0;
             $is_active   = isset($_POST['is_active']) ? 1 : 0;
-            $created_by = !empty($_POST['created_by']) ? (int)$_POST['created_by'] : ($_SESSION['user_id']) ?? null;
+            $created_by = !empty($_POST['created_by']) ? (int)$_POST['created_by'] : ($_SESSION['user']['id']) ?? null;
 
             // Shared Validation Engine Rule
             if (empty($name)) {
@@ -649,8 +650,10 @@ class AdminController
         // Fetch parent dropdown listings dynamically for the view dropdown matrix
         $parentOptions = $categoryModel->getAll(); 
 
-        // 4. Render the unified view file
+        ob_start();
         require_once __DIR__ . '/../../frontend/views/admin/category-edit.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../../frontend/views/admin/layout.php';
     }
 
     // ─────────────────────────────────────────────────────────
