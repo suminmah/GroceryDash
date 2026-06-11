@@ -16,8 +16,8 @@
             <th>Customer ID</th>
             <th>Client Profile Name</th>
             <th>Linked Account Email</th>
-            <th>Mobile Contact Phone</th>
-            <th>System Entry Created</th>
+            <th>Mobile Number</th>
+            <th>Created Date</th>
         </tr>
     </thead>
     <tbody>

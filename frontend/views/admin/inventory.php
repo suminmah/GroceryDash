@@ -13,7 +13,7 @@ $token     = $token ?? (function_exists('csrfToken') ? csrfToken() : '');
 
 <div class="admin-view-header mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-3">
     <div>
-        <h1 class="font-weight-bold text-dark m-0" style="font-size: 1.75rem; letter-spacing: -0.025em;">Inventory Logistics</h1>
+        <h1 class="font-weight-bold text-dark m-0" style="font-size: 1.75rem; letter-spacing: -0.025em;">Inventory</h1>
         <p class="text-muted m-0" style="font-size: 0.9rem;">Monitor, increment, and audit warehouse stocking levels against safety thresholds.</p>
     </div>
     
@@ -37,9 +37,9 @@ $token     = $token ?? (function_exists('csrfToken') ? csrfToken() : '');
             <thead>
                 <tr>
                     <th style="width: 12%;">Product ID</th>
-                    <th style="width: 43%;">Item Classification Name</th>
-                    <th style="width: 20%;">Warehouse Balance</th>
-                    <th style="width: 25%; text-align: right;">Quick Restock Modification Workspace</th>
+                    <th style="width: 43%;">Item Name</th>
+                    <th style="width: 20%;">Warehouse Stock</th>
+                    <th style="width: 25%; text-align: right;">Quick Restock</th>
                 </tr>
             </thead>
             <tbody>

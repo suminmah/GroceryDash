@@ -18,7 +18,7 @@ $customerCount = (int)($customerCount ?? 0);
 
 <main class="admin-main">
     <div class="admin-view-header mb-4 pb-2 border-bottom">
-        <h1 class="font-weight-bold m-0 text-dark" style="font-size: 1.75rem; letter-spacing: -0.025em;">Dashboard Overview</h1>
+        <h1 class="font-weight-bold text-dark" style="font-size: 1.75rem; letter-spacing: -0.025em;">Dashboard Overview</h1>
         <p class="text-muted m-0" style="font-size: 0.9rem;">Real-time status metrics and processing monitors.</p>
     </div>
 
