@@ -121,13 +121,13 @@ $formAction = $isEdit ? APP_URL . "/admin/products/{$product['id']}/edit" : APP_
                 <div class="product-image-container">
                     <?php 
                     // Secure filename tracking with a fallback standard icon image placeholder
-                    $displayImage = !empty($product['image']) ? $product['image'] : 'default.jpg'; 
+                    $displayImage = !empty($product['image']) ? $product['image'] : 'placeholder.jpg'; 
                     ?>
                     
-                    <img src="<?= APP_URL ?>/images/products/<?= htmlspecialchars($displayImage, ENT_QUOTES, 'UTF-8') ?>" 
+                    <img src="<?= APP_URL ?>/../assets/images/products/<?= htmlspecialchars($displayImage, ENT_QUOTES, 'UTF-8') ?>" 
                         class="img-fluid rounded" 
                         alt="<?= htmlspecialchars($product['name'] ?? 'Catalog Item') ?>"
-                        style="max-height: 150px; object-fit: contain;">
+                        style="max-height: 300px; object-fit: contain;">
                 </div>
 
                 <button type="submit" class="btn <?= $isEdit ? 'btn-warning text-dark font-weight-bold' : 'btn-success' ?> w-100 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-1">
