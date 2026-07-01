@@ -36,6 +36,21 @@
       </ul>
     </div>
 
+    <div class="footer-links-col" style="flex: 1.5 !important; max-width: 320px !important;">
+      <h3 class="footer-heading">Newsletter</h3>
+      <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem; color: #94a3b8;">
+        Subscribe to get updates on special offers, fresh arrivals, and recipes.
+      </p>
+      <form action="#" method="POST" onsubmit="event.preventDefault(); alert('Thank you for subscribing!');" style="display: flex; gap: 0.5rem; width: 100%;">
+        <input type="email" placeholder="Your email address" required 
+               style="flex: 1; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 0.875rem; outline: none; transition: border-color 0.2s;">
+        <button type="submit" 
+                style="background: var(--green, #198754); color: #fff; border: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
+          Join
+        </button>
+      </form>
+    </div>
+
   </div>
 
   <div class="footer-bottom">
