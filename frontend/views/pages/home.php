@@ -48,13 +48,16 @@ $wishlistedIds = $wishlistedIds ?? [];
         <a href="<?= APP_URL ?>/shop?category=<?= e($cat['slug']) ?>" class="category-card">
           <div class="cat-icon" aria-hidden="true">
             <?= match($cat['slug']) {
-              'vegetables' => '🥦',
-              'fruits'     => '🍎',
-              'dairy-eggs' => '🥛',
-              'bakery'     => '🍞',
-              'meat-fish'  => '🍗',
-              'beverages'  => '🧃',
-              default      => '🛒'
+              'vegetables'   => '🥦',
+              'fruits'       => '🍎',
+              'dairy-eggs'   => '🥛',
+              'bakery'       => '🍞',
+              'meat-fish'    => '🍗',
+              'beverages'    => '🧃',
+              'organic-food' => '🌿',
+              'canned-foods' => '🥫',
+              'oil'          => '🫒',
+              default        => '🛒'
             } ?>
           </div>
           <span class="cat-name"><?= e($cat['name']) ?></span>

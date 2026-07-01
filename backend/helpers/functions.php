@@ -27,7 +27,7 @@ function formatPrice(float $price): string {
  * Generate a random order number
  */
 function generateOrderNumber(): string {
-    return 'FC-' . strtoupper(substr(uniqid(), -6)) . rand(10, 99);
+    return 'FC-' . strtoupper(bin2hex(random_bytes(5)));
 }
 
 /**
