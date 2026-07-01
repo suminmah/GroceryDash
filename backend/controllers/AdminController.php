@@ -837,21 +837,9 @@ class AdminController
     }
 
     public function toggleStatus() {
-        // 1. Enforce strict session validation (Make sure an admin is logged in)
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (empty($_SESSION['admin_logged_in'])) {
-            die("Unauthorized access attempt configuration context validation.");
-        }
+        verifyCsrf();
 
-        // 2. Security validation check: Verify CSRF token payload authenticity 
-        // (Replace with your actual framework token checking function name if different)
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
-            die("Security error: Invalid token match payload tracking authorization verification.");
-        }
-
-        // 3. Extract and safely process parameters
+        // 1. Extract and safely process parameters
         $userId = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
         $currentStatus = isset($_POST['current_status']) ? intval($_POST['current_status']) : 1;
         
@@ -859,7 +847,7 @@ class AdminController
         $newStatus = ($currentStatus === 1) ? 0 : 1;
 
         if ($userId > 0) {
-            // 4. Fire the SQL command directly since UserModel does not expose updateStatus
+            // 2. Fire the SQL command directly since UserModel does not expose updateStatus
             $db = Database::connect();
             $stmt = $db->prepare("UPDATE users SET is_active = :is_active WHERE id = :id");
             $stmt->execute([
@@ -867,12 +855,11 @@ class AdminController
                 ':id'        => $userId
             ]);
 
-            // Set a user success feedback message flash state if your app supports it
-            $_SESSION['flash_message'] = "User operational lifecycle privileges updated.";
+            // Set a user success feedback message
+            flash('success', 'User operational status updated successfully.');
         }
 
-        // 5. Instantly route back to reload your updated table cleanly
-        header("Location: " . APP_URL . "/admin/users");
-        exit;
+        // 3. Instantly route back to reload your updated table cleanly
+        redirect(APP_URL . '/admin/users');
     }
 }

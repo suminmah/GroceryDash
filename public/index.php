@@ -202,6 +202,7 @@ if ($method === 'GET') {
     elseif ($uri === '/admin/categories/delete')                       { (new AdminController())->categoryDelete(); }
     
     elseif ($uri === '/admin/customers')                               { (new AdminController())->customerCreate(); }
+    elseif ($uri === '/admin/users/toggle-status')                     { (new AdminController())->toggleStatus(); }
     elseif ($uri === '/admin/settings/logo')                           { (new AdminController())->updateLogo(); }
     elseif ($uri === '/wishlist/toggle')                               { (new WishlistController())->toggle(); }
     else { 
