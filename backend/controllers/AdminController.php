@@ -266,7 +266,7 @@ class AdminController
             
             if (in_array($fileExtension, $allowedExtensions)) {
                 // Absolute destination folder mapping layout path
-                $uploadFileDir = __DIR__ . '/../../public/images/products/';
+                $uploadFileDir = __DIR__ . '/../../public/assets/images/products/';
                 $dest_path = $uploadFileDir . $newFileName;
                 
                 // Execute block relocation from temporary memory cache down to drive disk

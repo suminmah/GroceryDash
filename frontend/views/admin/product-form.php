@@ -108,23 +108,28 @@ $formAction = $isEdit ? APP_URL . "/admin/products/{$product['id']}/edit" : APP_
                             </select>
                         </div>
 
-                        <div>
+                        <div class="mt-3">
                             <label for="is_active" class="form-label text-muted small font-weight-bold d-block">Visibility State</label>
                             <select name="is_active" id="is_active" class="form-select">
                                 <option value="1" <?= (!isset($product['is_active']) || (int)$product['is_active'] === 1) ? 'selected' : '' ?>>Active</option>
                                 <option value="0" <?= (isset($product['is_active']) && (int)$product['is_active'] === 0) ? 'selected' : '' ?>>Inactive</option>
                             </select>
                         </div>
+
+                        <div class="mt-3">
+                            <label for="image" class="form-label text-muted small font-weight-bold d-block">Product Image</label>
+                            <input type="file" name="image" id="image" class="form-control" accept="image/*">
+                        </div>
                     </div>
                 </div>
 
-                <div class="product-image-container">
+                <div class="product-image-container mb-3">
                     <?php 
                     // Secure filename tracking with a fallback standard icon image placeholder
                     $displayImage = !empty($product['image']) ? $product['image'] : 'placeholder.jpg'; 
                     ?>
                     
-                    <img src="<?= APP_URL ?>/../assets/images/products/<?= htmlspecialchars($displayImage, ENT_QUOTES, 'UTF-8') ?>" 
+                    <img src="<?= APP_URL ?>/assets/images/products/<?= htmlspecialchars($displayImage, ENT_QUOTES, 'UTF-8') ?>" 
                         class="img-fluid rounded" 
                         alt="<?= htmlspecialchars($product['name'] ?? 'Catalog Item') ?>"
                         style="max-height: 300px; object-fit: contain;">

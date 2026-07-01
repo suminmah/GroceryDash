@@ -429,7 +429,7 @@ class ProductModel
         }
 
         // Perishable flag
-        if (isset($filters['is_perishable'])) {
+        if (isset($filters['is_perishable']) && $filters['is_perishable'] !== '') {
             $conditions[]              = 'p.is_perishable = :perish';
             $params[':perish']         = (int) $filters['is_perishable'];
         }
