@@ -129,6 +129,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.classList.remove('wishlisted');
                     btn.innerHTML = '🤍';
                 }
+
+                // Handle item card removal animation if on the wishlist page
+                const removeCardId = btn.getAttribute('data-remove-card');
+                if (removeCardId && !data.wishlisted) {
+                    const card = document.getElementById(removeCardId);
+                    if (card) {
+                        card.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.9)';
+                        
+                        setTimeout(() => {
+                            card.remove();
+                            // If wishlist is now empty, reload to show empty state view
+                            const grid = document.querySelector('.products-grid');
+                            if (grid && !grid.querySelector('.product-card')) {
+                                window.location.reload();
+                            }
+                        }, 300);
+                    }
+                }
             }
         })
         .catch(err => {

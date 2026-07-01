@@ -48,20 +48,18 @@ require __DIR__ . '/../layouts/header.php';
           <?php endif; ?>
 
             <!-- Heart button -->
-            <article class="product-card" id="wishlist-item-<?= (int)$productId ?>">
-              <div class="product-img-wrap">
-                  <img src="<?= APP_URL . '/assets/images/products/' . e($product['image']) ?>" alt="<?= e($product['name']) ?>">
-                  
-                  <button type="button" 
-                          class="wishlist-btn wishlisted" 
-                          data-product-id="<?= (int)$productId ?>" 
-                          data-csrf="<?= e(csrfToken()) ?>"
-                          data-remove-card="wishlist-item-<?= (int)$productId ?>"
-                          aria-label="Remove item directly">
-                      ❤️
-                  </button>
-              </div>
-            </article>
+            <div class="product-img-wrap">
+                <img src="<?= APP_URL . '/assets/images/products/' . e($product['image']) ?>" alt="<?= e($product['name']) ?>">
+                
+                <button type="button" 
+                        class="wishlist-btn wishlisted" 
+                        data-product-id="<?= (int)$productId ?>" 
+                        data-csrf="<?= e(csrfToken()) ?>"
+                        data-remove-card="wishlist-item-<?= (int)$productId ?>"
+                        aria-label="Remove item directly">
+                    ❤️
+                </button>
+            </div>
             
           <div class="product-info" style="flex-grow:1; display:flex; flex-direction:column;">
             <h3 class="product-name" style="font-size:1rem; margin:0 0 .25rem; line-height:1.4;">
