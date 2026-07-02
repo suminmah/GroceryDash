@@ -61,6 +61,11 @@ class AuthController {
             redirect(APP_URL . '/login');
         }
 
+        if (isset($user['is_active']) && !$user['is_active']) {
+            flash('auth_error', 'Your account has been suspended. Please contact support.');
+            redirect(APP_URL . '/login');
+        }
+
         // if (!$user) {
         //     die('<pre style="background:#1a1a1a;color:#f87171;padding:2rem;font-size:1rem">'
         //         . "❌ No user found for email: " . htmlspecialchars($email)

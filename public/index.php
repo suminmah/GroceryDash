@@ -102,6 +102,9 @@ if ($method === 'GET') {
     }
     elseif ($uri === '/offers')                                       { (new ShopController())->offers(); }
     elseif ($uri === '/checkout')                                     { (new CheckoutController())->form(); }
+    elseif ($uri === '/checkout/esewa/success')                       { (new CheckoutController())->esewaSuccess(); }
+    elseif ($uri === '/checkout/esewa/failure')                       { (new CheckoutController())->esewaFailure(); }
+    elseif ($uri === '/checkout/khalti/callback')                     { (new CheckoutController())->khaltiCallback(); }
     elseif (match_route($uri, '/order/confirmation/{id}', $params))   { (new CheckoutController())->confirmation((int) $params['id']); }
     elseif (match_route($uri, '/order/track/{id}', $params)) {
         require_once __DIR__ . '/../backend/controllers/OrderController.php';

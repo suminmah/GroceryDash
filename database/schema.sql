@@ -81,7 +81,7 @@ CREATE TABLE orders (
     delivery_fee    DECIMAL(10,2) DEFAULT 0.00,
     discount        DECIMAL(10,2) DEFAULT 0.00,
     total           DECIMAL(10,2) NOT NULL,
-    payment_method  ENUM('cod','online') DEFAULT 'cod',
+    payment_method  ENUM('cod','online','fonepay','esewa','khalti') DEFAULT 'cod',
     payment_status  ENUM('pending','paid','failed') DEFAULT 'pending',
     delivery_address TEXT NOT NULL,
     delivery_slot   VARCHAR(50),

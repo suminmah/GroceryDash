@@ -88,6 +88,18 @@ $selectedSlotId = $_POST['delivery_slot_id'] ?? null;
             <span>💵 Cash on Delivery</span>
           </label>
           <label class="payment-option">
+            <input type="radio" name="payment_method" value="esewa">
+            <span style="display: flex; align-items: center; gap: 8px;"><img src="<?= APP_URL ?>/assets/images/esewa-logo.webp" alt="eSewa" style="height:45px; object-fit: contain;"> eSewa</span>
+          </label>
+          <label class="payment-option">
+            <input type="radio" name="payment_method" value="khalti">
+            <span style="display: flex; align-items: center; gap: 8px;"><img src="<?= APP_URL ?>/assets/images/khalti-logo.png" alt="Khalti" style="height:28px; object-fit: contain;"> Khalti</span>
+          </label>
+          <label class="payment-option">
+            <input type="radio" name="payment_method" value="fonepay">
+            <span style="display: flex; align-items: center; gap: 8px;"><img src="<?= APP_URL ?>/assets/images/fonepay-logo.png" alt="Fonepay" style="height:60px; object-fit: contain;"> Fonepay QR</span>
+          </label>
+          <label class="payment-option">
             <input type="radio" name="payment_method" value="online">
             <span>💳 Pay Online (UPI / Card)</span>
           </label>

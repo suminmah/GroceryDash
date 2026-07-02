@@ -10,11 +10,13 @@ $order = $order ?? [];
 ?>
 
 <div class="container" style="padding: 3rem 1rem 5rem; max-width: 900px; font-family: 'Poppins', system-ui, -apple-system, sans-serif;">
-    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 16px; background: #fff; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;">
+    
+    <!-- Hero Card -->
+    <div class="premium-track-card mb-4 delay-1">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
-                <div class="bg-light rounded-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; color: #2c7a4d; background-color: #f0fdf4 !important;">
-                    <i class="bi bi-box2-heart fs-3"></i>
+                <div class="premium-track-hero-icon">
+                    <svg style="width:32px; height:32px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"></path></svg>
                 </div>
                 <div>
                     <span class="text-muted small text-uppercase fw-bold tracking-wider" style="letter-spacing: 0.08em; font-size: 0.75rem;">Tracking Code Reference</span>
@@ -23,115 +25,122 @@ $order = $order ?? [];
             </div>
             <div class="text-sm-end">
                 <p class="text-muted mb-1 small">Order Date: <strong class="text-dark"><?= date('M d, Y', strtotime($order['created_at'] ?? 'now')) ?></strong></p>
-                <span class="badge rounded-pill px-3 py-2 fw-semibold text-uppercase border
-                    <?= $status === 'delivered' ? 'bg-success text-white border-success' : ($status === 'cancelled' ? 'bg-danger text-white border-danger' : 'text-warning border-warning') ?>" 
-                    style="font-size: 0.75rem; letter-spacing: 0.05em; background-color: <?= $status === 'delivered' ? '#2c7a4d' : ($status === 'cancelled' ? '#dc2626' : '#fffdf2') ?> !important;">
-                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem; vertical-align: middle;"></i> <?= htmlspecialchars($status) ?>
+                <span class="status-badge" style="<?= $status === 'delivered' ? 'background: #dcfce7; color: #166534;' : ($status === 'cancelled' ? 'background: #fee2e2; color: #991b1b;' : '') ?>">
+                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem; vertical-align: middle;"></i> <?= htmlspecialchars(ucfirst($status)) ?>
                 </span>
             </div>
         </div>
     </div>
 
     <div class="row g-4">
+        <!-- Timeline Column -->
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px; background: #fff; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;">
-                <h5 class="fw-bold mb-4 text-dark" style="font-size: 1.1rem;">Delivery Shipment Timeline</h5>
+            <div class="premium-track-card h-100 delay-2" style="padding: 2rem;">
+                <h5 class="fw-bold text-dark" style="font-size: 1.25rem;">Delivery Shipment Timeline</h5>
                 
-                <div class="position-relative ps-2">
-                    <div class="position-absolute" style="left: 21px; top: 12px; bottom: 12px; width: 3px; background-color: #f3f4f6; z-index: 1;"></div>
-                    
-                    <div class="position-absolute" style="left: 21px; top: 12px; width: 3px; background-color: #2c7a4d; z-index: 1; transition: height 0.5s ease;
-                        height: <?= $status === 'delivered' ? 'calc(100% - 24px)' : ($status === 'shipped' ? '66%' : ($status === 'processing' ? '33%' : '0px')) ?>;">
-                    </div>
+                <div class="premium-timeline">
+                    <div class="premium-timeline-progress" style="height: <?= $status === 'delivered' ? '100%' : ($status === 'shipped' ? '66%' : ($status === 'processing' ? '33%' : '0')) ?>;"></div>
 
-                    <div class="d-flex align-items-start mb-4 position-relative" style="z-index: 2;">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
-                             style="width: 30px; height: 30px; background: #2c7a4d; color: #fff; border: 3px solid #fff; margin-left: 2px;">
-                            <i class="bi bi-check" style="font-size: 1.1rem;"></i>
+                    <!-- Step 1: Confirmed -->
+                    <div class="timeline-step completed">
+                        <div class="timeline-icon">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </div>
-                        <div class="ps-3">
-                            <h6 class="mb-0 fw-bold text-dark">Order Confirmed</h6>
-                            <small class="text-muted">We have successfully accepted and verified your order pool criteria request.</small>
+                        <div class="timeline-content">
+                            <h6>Order Confirmed</h6>
+                            <p>We have successfully accepted and verified your order.</p>
                         </div>
                     </div>
 
-                    <?php $isProcessing = in_array($status, ['processing', 'shipped', 'delivered']); ?>
-                    <div class="d-flex align-items-start mb-4 position-relative" style="z-index: 2;">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
-                             style="width: 30px; height: 30px; background: <?= $isProcessing ? '#2c7a4d' : '#fff' ?>; color: <?= $isProcessing ? '#fff' : '#9ca3af' ?>; border: 3px solid <?= $isProcessing ? '#fff' : '#e5e7eb' ?>; margin-left: 2px;">
-                            <i class="bi <?= $status === 'processing' ? 'bi-arrow-repeat spin' : 'bi-box-seam' ?>" style="font-size: 0.85rem;"></i>
+                    <!-- Step 2: Processing -->
+                    <?php $isProcessingActive = ($status === 'processing'); ?>
+                    <?php $isProcessingCompleted = in_array($status, ['shipped', 'delivered']); ?>
+                    <div class="timeline-step <?= $isProcessingCompleted ? 'completed' : ($isProcessingActive ? 'active' : '') ?>">
+                        <div class="timeline-icon">
+                            <?php if ($isProcessingActive): ?>
+                                <svg class="spin" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <?php else: ?>
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"></path></svg>
+                            <?php endif; ?>
                         </div>
-                        <div class="ps-3">
-                            <h6 class="mb-0 <?= $isProcessing ? 'fw-bold text-dark' : 'text-muted fw-normal' ?>">Processing & Packing</h6>
-                            <small class="text-muted">Your goods are being hand-picked and carefully packed from local stockrooms.</small>
-                        </div>
-                    </div>
-
-                    <?php $isShipped = in_array($status, ['shipped', 'delivered']); ?>
-                    <div class="d-flex align-items-start mb-4 position-relative" style="z-index: 2;">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
-                             style="width: 30px; height: 30px; background: <?= $isShipped ? '#2c7a4d' : '#fff' ?>; color: <?= $isShipped ? '#fff' : '#9ca3af' ?>; border: 3px solid <?= $isShipped ? '#fff' : '#e5e7eb' ?>; margin-left: 2px;">
-                            <i class="bi bi-truck" style="font-size: 0.85rem;"></i>
-                        </div>
-                        <div class="ps-3">
-                            <h6 class="mb-0 <?= $isShipped ? 'fw-bold text-dark' : 'text-muted fw-normal' ?>">Out For Delivery</h6>
-                            <small class="text-muted">Our dedicated rider log agent has left our hub and is en-route to your door.</small>
+                        <div class="timeline-content">
+                            <h6>Processing & Packing</h6>
+                            <p>Your goods are being hand-picked and carefully packed.</p>
                         </div>
                     </div>
 
-                    <?php $isDelivered = ($status === 'delivered'); ?>
-                    <div class="d-flex align-items-start position-relative" style="z-index: 2;">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
-                             style="width: 30px; height: 30px; background: <?= $isDelivered ? '#2c7a4d' : '#fff' ?>; color: <?= $isDelivered ? '#fff' : '#9ca3af' ?>; border: 3px solid <?= $isDelivered ? '#fff' : '#e5e7eb' ?>; margin-left: 2px;">
-                            <i class="bi bi-house-check" style="font-size: 0.85rem;"></i>
+                    <!-- Step 3: Shipped -->
+                    <?php $isShippedActive = ($status === 'shipped'); ?>
+                    <?php $isShippedCompleted = ($status === 'delivered'); ?>
+                    <div class="timeline-step <?= $isShippedCompleted ? 'completed' : ($isShippedActive ? 'active' : '') ?>">
+                        <div class="timeline-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                         </div>
-                        <div class="ps-3">
-                            <h6 class="mb-0 <?= $isDelivered ? 'fw-bold text-dark' : 'text-muted fw-normal' ?>">Delivered Successfully</h6>
-                            <small class="text-muted">Package dropped off safely at your designated destination location drop center points.</small>
+                        <div class="timeline-content">
+                            <h6>Out For Delivery</h6>
+                            <p>Our dedicated rider is en-route to your door.</p>
                         </div>
                     </div>
 
+                    <!-- Step 4: Delivered -->
+                    <div class="timeline-step <?= ($status === 'delivered') ? 'completed' : '' ?>">
+                        <div class="timeline-icon">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        </div>
+                        <div class="timeline-content">
+                            <h6>Delivered Successfully</h6>
+                            <p>Package dropped off safely at your location.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Info Column -->
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px; background: #fff; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;">
-                <h5 class="fw-bold mb-4 text-dark" style="font-size: 1.1rem;">Delivery & Payment Info</h5>
+            <div class="premium-track-card h-100 delay-2" style="padding: 2rem; display: flex; flex-direction: column;">
+                <h5 class="fw-bold text-dark mb-4" style="font-size: 1.25rem;">Delivery & Payment Info</h5>
                 
-                <div class="mb-4">
-                    <div class="d-flex align-items-start gap-2 mb-3">
-                        <i class="bi bi-geo-alt text-muted mt-1" style="font-size: 1.1rem;"></i>
-                        <div>
-                            <span class="d-block small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Shipping Destination</span>
-                            <span class="text-dark fw-medium" style="font-size: 0.95rem;"><?= htmlspecialchars($order['delivery_address'] ?? 'Provided on invoice receipt mappings') ?></span>
-                        </div>
+                <div class="premium-info-block">
+                    <div class="premium-info-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     </div>
-
-                    <div class="d-flex align-items-start gap-2 pt-2">
-                        <i class="bi bi-credit-card text-muted mt-1" style="font-size: 1.1rem;"></i>
-                        <div>
-                            <span class="d-block small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Payment Gateway</span>
-                            <span class="text-dark fw-bold text-uppercase" style="font-size: 0.9rem;"><?= htmlspecialchars($order['payment_method'] ?? 'Cash on Delivery (COD)') ?></span>
-                        </div>
+                    <div class="premium-info-text">
+                        <strong>Shipping Destination</strong>
+                        <span><?= htmlspecialchars($order['delivery_address'] ?? 'Provided on checkout') ?></span>
                     </div>
                 </div>
 
-                <div class="mt-auto p-3 rounded-3" style="background-color: #f9fafb; border: 1px solid #f3f4f6;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small fw-medium">Total Cost (Inc. Tax & Fees):</span>
-                        <span class="fw-bold" style="font-size: 1.35rem; color: #2c7a4d; letter-spacing: -0.02em;">
-                            Rs. <?= number_format((float)($order['total_amount'] ?? 0), 2) ?>
+                <div class="premium-info-block">
+                    <div class="premium-info-icon">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    </div>
+                    <div class="premium-info-text">
+                        <strong>Payment Gateway</strong>
+                        <span class="d-inline-flex align-items-center gap-2">
+                            <?= match(strtolower($order['payment_method'] ?? '')) {
+                                'cod' => 'Cash on Delivery (COD)',
+                                'fonepay' => '<img src="' . APP_URL . '/assets/images/fonepay-logo.png" alt="Fonepay" style="height:20px;"> Fonepay',
+                                'esewa' => '<img src="' . APP_URL . '/assets/images/esewa-logo.webp" alt="eSewa" style="height:20px;"> eSewa',
+                                'khalti' => '<img src="' . APP_URL . '/assets/images/khalti-logo.png" alt="Khalti" style="height:20px;"> Khalti',
+                                'online' => 'Online Payment',
+                                default => strtoupper($order['payment_method'] ?? 'COD')
+                            } ?>
                         </span>
                     </div>
+                </div>
+
+                <div class="mt-auto premium-total-block">
+                    <span>Total Cost (Inc. Tax & Fees)</span>
+                    <strong>Rs. <?= number_format((float)($order['total'] ?? $order['total_amount'] ?? 0), 2) ?></strong>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="text-center mt-5">
-        <a href="<?= APP_URL ?>/shop" class="btn btn-outline-success btn-lg px-5 py-2 rounded-3" style="border-color: #2c7a4d; color: #2c7a4d; font-size: 1rem; font-weight: 500;">
-            <i class="bi bi-arrow-left me-2" style="margin-top: 0.125rem;"></i> Continue Grocery Shopping
+    <div class="premium-actions mt-5">
+        <a href="<?= APP_URL ?>/shop" class="btn btn-primary btn-pill" style="min-width: 300px;">
+            <i class="bi bi-arrow-left me-2"></i> Continue Grocery Shopping
         </a>
     </div>
 </div>

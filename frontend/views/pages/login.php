@@ -19,7 +19,7 @@ if (isset($_SESSION['id'])) {
 }
 
 $pageTitle = 'Sign In — GroceryDash';
-$error = null;
+$error = $error ?? flash('auth_error');
 require __DIR__ . '/../layouts/header.php';
 ?>
 <div class="auth-wrap">

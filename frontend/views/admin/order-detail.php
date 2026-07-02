@@ -133,6 +133,29 @@ $orderItems = $order['items'] ?? [];
                 </div>
             </div>
 
+            <div class="panel-card sidebar-card mt-3">
+                <h3>Delivery & Payment</h3>
+                <div style="font-size: 0.9rem; line-height: 1.5; margin-top: 10px;">
+                    <div style="margin-bottom: 12px;">
+                        <strong style="display: block; color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Delivery Address</strong>
+                        <span style="color: #334155; font-weight: 500;"><?= htmlspecialchars($order['delivery_address'] ?? 'N/A', ENT_QUOTES, 'UTF-8') ?></span>
+                    </div>
+                    <div>
+                        <strong style="display: block; color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Payment Method</strong>
+                        <span class="text-uppercase d-inline-flex align-items-center gap-2" style="font-weight: 700; font-size: 0.85rem;">
+                          <?= match(strtolower($order['payment_method'] ?? '')) {
+                              'cod' => '💵 Cash on Delivery (COD)',
+                              'fonepay' => '<img src="' . APP_URL . '/assets/images/fonepay-logo.png" alt="Fonepay" style="height:20px;"> Fonepay QR',
+                              'esewa' => '<img src="' . APP_URL . '/assets/images/esewa-logo.webp" alt="eSewa" style="height:20px;"> eSewa Pay',
+                              'khalti' => '<img src="' . APP_URL . '/assets/images/khalti-logo.png" alt="Khalti" style="height:20px;"> Khalti SDK',
+                              'online' => '💳 Online Payment',
+                              default => strtoupper($order['payment_method'] ?? 'COD')
+                          } ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             <div class="panel-card sidebar-card active-control-card">
                 <h3>Advance Lifecycle State</h3>
                 <p class="control-description">Update this order's status across fulfillment workflows.</p>

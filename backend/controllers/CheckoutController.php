@@ -12,6 +12,14 @@ require_once __DIR__ . '/../helpers/functions.php';
 
 class CheckoutController
 {
+    private const ESEWA_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
+    private const ESEWA_SECRET = '8gBm/:&EnhH.1/q';
+    private const ESEWA_MERCHANT = 'EPAYTEST';
+    
+    private const KHALTI_INITIATE_URL = 'https://a.khalti.com/api/v2/epayment/initiate/';
+    private const KHALTI_LOOKUP_URL = 'https://a.khalti.com/api/v2/epayment/lookup/';
+    private const KHALTI_SECRET = '2de3f1f3624e4d9e9ae53ffb1d1c8f16'; // Replace with real key
+
     private OrderModel        $orders;
     private DeliverySlotModel $slots;
     private InventoryModel    $inventory;
@@ -141,10 +149,207 @@ class CheckoutController
             $orderId = $this->orders->create($orderData, $items);
             $this->slots->incrementBooked($slotId);
             $_SESSION['cart'] = [];
+
+            if ($paymentMethod === 'esewa') {
+                $stmt = $this->db->prepare("SELECT order_number FROM orders WHERE id = ?");
+                $stmt->execute([$orderId]);
+                $transactionUuid = $stmt->fetchColumn();
+                
+                $amount = $totals['total'];
+                $taxAmount = 0;
+                $deliveryCharge = 0;
+                $serviceCharge = 0;
+                $totalAmount = $amount + $taxAmount + $deliveryCharge + $serviceCharge;
+                
+                $signedFields = 'total_amount,transaction_uuid,product_code';
+                $message = "total_amount={$totalAmount},transaction_uuid={$transactionUuid},product_code=" . self::ESEWA_MERCHANT;
+                $signature = base64_encode(hash_hmac('sha256', $message, self::ESEWA_SECRET, true));
+                
+                $successUrl = APP_URL . '/checkout/esewa/success';
+                $failureUrl = APP_URL . '/checkout/esewa/failure';
+                
+                echo "<!DOCTYPE html><html><body onload='document.forms[0].submit()'>";
+                echo "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'>";
+                echo "<div style='text-align:center;'><div style='margin-bottom:10px;'><img src='" . APP_URL . "/assets/images/esewa-logo.webp' height='50'></div>";
+                echo "<h3>Redirecting to eSewa securely...</h3><p>Please do not refresh or close this page.</p></div></div>";
+                echo "<form action='" . self::ESEWA_URL . "' method='POST' style='display:none;'>";
+                echo "<input type='hidden' name='amount' value='{$amount}'>";
+                echo "<input type='hidden' name='tax_amount' value='{$taxAmount}'>";
+                echo "<input type='hidden' name='total_amount' value='{$totalAmount}'>";
+                echo "<input type='hidden' name='transaction_uuid' value='{$transactionUuid}'>";
+                echo "<input type='hidden' name='product_code' value='" . self::ESEWA_MERCHANT . "'>";
+                echo "<input type='hidden' name='product_service_charge' value='{$serviceCharge}'>";
+                echo "<input type='hidden' name='product_delivery_charge' value='{$deliveryCharge}'>";
+                echo "<input type='hidden' name='success_url' value='{$successUrl}'>";
+                echo "<input type='hidden' name='failure_url' value='{$failureUrl}'>";
+                echo "<input type='hidden' name='signed_field_names' value='{$signedFields}'>";
+                echo "<input type='hidden' name='signature' value='{$signature}'>";
+                echo "</form></body></html>";
+                exit;
+            } elseif ($paymentMethod === 'khalti') {
+                $stmt = $this->db->prepare("SELECT order_number FROM orders WHERE id = ?");
+                $stmt->execute([$orderId]);
+                $transactionUuid = $stmt->fetchColumn();
+
+                $amountInPaisa = (int) ($totals['total'] * 100);
+
+                $payload = json_encode([
+                    "return_url" => APP_URL . '/checkout/khalti/callback',
+                    "website_url" => APP_URL,
+                    "amount" => $amountInPaisa,
+                    "purchase_order_id" => $transactionUuid,
+                    "purchase_order_name" => "GroceryShop Order " . $orderId,
+                    "customer_info" => [
+                        "name" => $_SESSION['user']['name'] ?? "Customer",
+                        "email" => $_SESSION['user']['email'] ?? "customer@example.com",
+                        "phone" => $_SESSION['user']['phone'] ?? "9800000000"
+                    ]
+                ]);
+
+                $ch = curl_init(self::KHALTI_INITIATE_URL);
+                curl_setopt($ch, CURLOPT_POST, 1);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    "Authorization: Key " . self::KHALTI_SECRET,
+                    "Content-Type: application/json"
+                ]);
+
+                $response = curl_exec($ch);
+                curl_close($ch);
+
+                $result = json_decode($response, true);
+                if (isset($result['payment_url'])) {
+                    header("Location: " . $result['payment_url']);
+                    exit;
+                } else {
+                    flash('error', 'Failed to initiate Khalti payment. ' . ($result['detail'] ?? ''));
+                    redirect(APP_URL . '/checkout');
+                }
+            }
+
             flash('success', 'Your order has been placed successfully!');
             redirect(APP_URL . '/order/confirmation/' . $orderId);
         } catch (RuntimeException $e) {
             flash('error', $e->getMessage());
+            redirect(APP_URL . '/checkout');
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /checkout/esewa/success
+    // ─────────────────────────────────────────────────────────
+    public function esewaSuccess()
+    {
+        if (!isset($_GET['data'])) {
+            flash('error', 'Invalid callback from eSewa.');
+            redirect(APP_URL . '/checkout');
+        }
+
+        $encodedData = $_GET['data'];
+        $decodedData = json_decode(base64_decode($encodedData), true);
+
+        if (!$decodedData) {
+            flash('error', 'Could not decode eSewa response.');
+            redirect(APP_URL . '/checkout');
+        }
+
+        $status = $decodedData['status'] ?? '';
+        $transactionUuid = $decodedData['transaction_uuid'] ?? '';
+        
+        if ($status !== 'COMPLETE') {
+            flash('error', 'eSewa payment was not completed. Status: ' . $status);
+            redirect(APP_URL . '/checkout');
+        }
+
+        $signedFields = $decodedData['signed_field_names'] ?? '';
+        $fieldsArray = explode(',', $signedFields);
+        
+        $messageParts = [];
+        foreach ($fieldsArray as $field) {
+            $messageParts[] = "{$field}={$decodedData[$field]}";
+        }
+        $message = implode(',', $messageParts);
+        $expectedSignature = base64_encode(hash_hmac('sha256', $message, self::ESEWA_SECRET, true));
+
+        if ($expectedSignature !== $decodedData['signature']) {
+            flash('error', 'Invalid eSewa signature. Payment verification failed.');
+            redirect(APP_URL . '/checkout');
+        }
+
+        $stmt = $this->db->prepare("SELECT id FROM orders WHERE order_number = ? LIMIT 1");
+        $stmt->execute([$transactionUuid]);
+        $orderId = $stmt->fetchColumn();
+
+        if (!$orderId) {
+            flash('error', 'Order not found for transaction UUID: ' . $transactionUuid);
+            redirect(APP_URL . '/checkout');
+        }
+
+        $updateStmt = $this->db->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?");
+        $updateStmt->execute([$orderId]);
+
+        flash('success', 'Your eSewa payment was successful!');
+        redirect(APP_URL . '/order/confirmation/' . $orderId);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /checkout/esewa/failure
+    // ─────────────────────────────────────────────────────────
+    public function esewaFailure()
+    {
+        flash('error', 'You have cancelled the eSewa payment or it failed.');
+        redirect(APP_URL . '/checkout');
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /checkout/khalti/callback
+    // ─────────────────────────────────────────────────────────
+    public function khaltiCallback()
+    {
+        $pidx = $_GET['pidx'] ?? null;
+        $purchaseOrderId = $_GET['purchase_order_id'] ?? null;
+
+        if (!$pidx || !$purchaseOrderId) {
+            flash('error', 'Invalid callback from Khalti.');
+            redirect(APP_URL . '/checkout');
+        }
+
+        $payload = json_encode(['pidx' => $pidx]);
+
+        $ch = curl_init(self::KHALTI_LOOKUP_URL);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Key " . self::KHALTI_SECRET,
+            "Content-Type: application/json"
+        ]);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $result = json_decode($response, true);
+
+        if (isset($result['status']) && strtolower($result['status']) === 'completed') {
+            // Find order id from order_number
+            $stmt = $this->db->prepare("SELECT id FROM orders WHERE order_number = ?");
+            $stmt->execute([$purchaseOrderId]);
+            $orderId = $stmt->fetchColumn();
+
+            if ($orderId) {
+                // Update order payment status
+                $update = $this->db->prepare("UPDATE orders SET payment_status = 'paid' WHERE id = ?");
+                $update->execute([$orderId]);
+
+                flash('success', 'Khalti Payment successful! Your order has been placed.');
+                redirect(APP_URL . '/order/confirmation/' . $orderId);
+            } else {
+                flash('error', 'Order not found for the transaction.');
+                redirect(APP_URL . '/checkout');
+            }
+        } else {
+            flash('error', 'Khalti Payment failed or is pending.');
             redirect(APP_URL . '/checkout');
         }
     }
