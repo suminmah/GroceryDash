@@ -38,8 +38,8 @@ $categories = $categories ?? (new Category())->getAll();
   <title><?= e($pageTitle) ?></title>
   <meta name="description" content="Order fresh groceries online and get them delivered in 30 minutes. Best prices, widest selection.">
   
-  <link rel="stylesheet" href="/grocery-shop/public/assets/css/style.css?v=<?= time() ?>">
-  <link rel="stylesheet" href="/grocery-shop/public/assets/css/user-order.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/user-order.css?v=<?= time() ?>">
   <link rel="stylesheet" href="/grocery-shop/public/assets/css/admin.css?v=<?= time() ?>">
   
   <aria-preconnect href="https://fonts.googleapis.com">
