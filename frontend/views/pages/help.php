@@ -9,10 +9,15 @@ require __DIR__ . '/../layouts/header.php';
     <p style="font-size: 1.2rem; color: var(--green); margin-bottom: 2rem;">Find answers to common questions or contact our support team.</p>
     
     <div class="premium-search-box">
-      <form method="GET" action="<?= APP_URL ?>/help" style="display: flex; width: 100%;">
-        <i class="bi bi-search" style="font-size: 1.2rem; color: #94a3b8; padding: 1rem 0 1rem 1.5rem; align-self: center;"></i>
-        <input type="text" name="q" placeholder="Search for help (e.g., delivery, returns)" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
-        <button type="submit">Search</button>
+      <form method="GET" action="<?= APP_URL ?>/help" style="display: flex; width: 100%; align-items: stretch; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; padding-left: 1rem;">
+          <i class="bi bi-search" style="font-size: 1.2rem; color: #94a3b8; flex-shrink: 0;"></i>
+        </div>
+        <input type="text" name="q" placeholder="Search for help (e.g., delivery, returns)" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" style="flex: 1; min-width: 0; padding-left: 0.5rem;">
+        <div style="display: flex; align-items: center;">
+          <i class="bi bi-x-circle-fill" id="clear-search" style="font-size: 1.3rem; color: #cbd5e1; cursor: pointer; padding: 0 0.5rem; display: none; transition: color 0.2s; flex-shrink: 0;" title="Clear Filter"></i>
+        </div>
+        <button type="submit" style="flex-shrink: 0;">Search</button>
       </form>
     </div>
   </div>
@@ -92,7 +97,7 @@ require __DIR__ . '/../layouts/header.php';
         <i class="bi bi-chat-dots-fill" style="font-size: 3rem; color: #4f46e5; margin-bottom: 1rem; display: block;"></i>
         <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #0f172a;">Live Chat</h3>
         <p style="color: #64748b; margin-bottom: 1.5rem;">Fastest response time.</p>
-        <button class="btn btn-outline" style="border-radius: 50px; font-weight: 600; color: #4f46e5; border-color: #4f46e5; width: 100%;">Start Chat</button>
+        <button class="btn btn-outline" id="start-chat" style="border-radius: 50px; font-weight: 600; color: #4f46e5; border-color: #4f46e5; width: 100%;">Start Chat</button>
       </div>
       
       <div style="background: #fff; padding: 2.5rem; border-radius: 20px; width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; transition: transform 0.2s;">
@@ -113,7 +118,87 @@ require __DIR__ . '/../layouts/header.php';
 </section>
 
 <script>
-// Simple live chat simulation – replace with actual widget if needed
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.querySelector('.premium-search-box input[name="q"]');
+  const form = searchInput.closest('form');
+  const categories = document.querySelectorAll('.premium-faq-category');
+  const clearBtn = document.getElementById('clear-search');
+
+  function filterFAQs(query) {
+    query = query.toLowerCase().trim();
+    
+    categories.forEach(category => {
+      let hasVisibleFAQ = false;
+      const faqs = category.querySelectorAll('details');
+      
+      faqs.forEach(faq => {
+        const text = faq.textContent.toLowerCase();
+        if (text.includes(query)) {
+          faq.style.display = '';
+          hasVisibleFAQ = true;
+          if (query.length > 0) {
+            faq.setAttribute('open', '');
+          } else {
+            faq.removeAttribute('open');
+          }
+        } else {
+          faq.style.display = 'none';
+        }
+      });
+      
+      category.style.display = hasVisibleFAQ ? '' : 'none';
+    });
+  }
+
+  function updateClearBtn() {
+    clearBtn.style.display = searchInput.value.length > 0 ? 'block' : 'none';
+  }
+
+  clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    filterFAQs('');
+    updateClearBtn();
+    
+    // Clear URL
+    const url = new URL(window.location);
+    url.searchParams.delete('q');
+    window.history.pushState({}, '', url);
+    searchInput.focus();
+  });
+
+  // Hover effect for the clear button
+  clearBtn.addEventListener('mouseover', () => clearBtn.style.color = '#ef4444');
+  clearBtn.addEventListener('mouseout', () => clearBtn.style.color = '#cbd5e1');
+
+  // Live search as user types
+  searchInput.addEventListener('input', (e) => {
+    filterFAQs(e.target.value);
+    updateClearBtn();
+  });
+
+  // Prevent form submission to keep it on the same page (client-side routing)
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    filterFAQs(searchInput.value);
+    
+    // Update URL without reloading
+    const url = new URL(window.location);
+    if (searchInput.value) {
+      url.searchParams.set('q', searchInput.value);
+    } else {
+      url.searchParams.delete('q');
+    }
+    window.history.pushState({}, '', url);
+  });
+
+  // Run on initial load
+  if (searchInput.value) {
+    filterFAQs(searchInput.value);
+  }
+  updateClearBtn();
+});
+
+// Simple live chat simulation
 document.getElementById('start-chat')?.addEventListener('click', function() {
   alert('Our support team is online. Please email or call for immediate assistance.');
 });
