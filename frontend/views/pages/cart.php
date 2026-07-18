@@ -112,4 +112,110 @@ if (!isset($totals)) {
   <?php endif; ?>
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Handle Item Removal
+    document.querySelectorAll('.js-remove-item').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const productId = this.getAttribute('data-id');
+            const csrfToken = this.getAttribute('data-csrf');
+            
+            const payload = new URLSearchParams();
+            payload.append('product_id', productId);
+            payload.append('csrf_token', csrfToken);
+            
+            // Add slight visual feedback
+            const btn = this;
+            btn.style.opacity = '0.5';
+            
+            fetch("<?= APP_URL ?>/cart/remove", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: payload
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.cart_count === 0) {
+                        window.location.reload(); // Empty state
+                        return;
+                    }
+                    
+                    // Update global headers
+                    document.querySelectorAll('.cart-count, .cart-counter, .cart-badge').forEach(c => c.innerText = data.cart_count);
+                    
+                    // Update order summary
+                    if (document.getElementById('summarySubtotal')) document.getElementById('summarySubtotal').innerHTML = data.subtotal;
+                    if (document.getElementById('summaryDelivery')) document.getElementById('summaryDelivery').innerHTML = data.delivery_fee == '$0.00' || data.delivery_fee == '0' || data.delivery_fee == 'Rs. 0.00' || data.delivery_fee.includes('0.00') ? '<span class="text-green" style="color: #16a34a; font-weight: 600;">FREE</span>' : data.delivery_fee;
+                    if (document.getElementById('summaryTotal')) document.getElementById('summaryTotal').innerHTML = data.total;
+                    
+                    // Animate and remove item row seamlessly
+                    const cartRow = btn.closest('.cart-item');
+                    if (cartRow) {
+                        cartRow.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                        cartRow.style.opacity = '0';
+                        cartRow.style.transform = 'scale(0.95)';
+                        setTimeout(() => cartRow.remove(), 300);
+                    }
+                } else {
+                    alert(data.message || 'Failed to remove item.');
+                    btn.style.opacity = '1';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                btn.style.opacity = '1';
+            });
+        });
+    });
+
+    // 2. Handle Quantity Updates
+    document.querySelectorAll('.js-update-qty').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const productId = this.getAttribute('data-id');
+            const csrfToken = this.getAttribute('data-csrf');
+            const action = this.getAttribute('data-action');
+            
+            const displaySpan = this.parentElement.querySelector('.qty-display');
+            let currentQty = parseInt(displaySpan.innerText, 10);
+            
+            let newQty = action === 'inc' ? currentQty + 1 : currentQty - 1;
+            if (newQty < 0) newQty = 0;
+            
+            const payload = new URLSearchParams();
+            payload.append('product_id', productId);
+            payload.append('quantity', newQty);
+            payload.append('csrf_token', csrfToken);
+            
+            // Disable all buttons in this group temporarily to prevent spam clicks
+            const btns = this.parentElement.querySelectorAll('.qty-btn');
+            btns.forEach(b => b.disabled = true);
+            
+            fetch("<?= APP_URL ?>/cart/update", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: payload
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload(); // Reload to safely recalculate line totals and delivery thresholds
+                } else {
+                    alert(data.message || 'Failed to update quantity.');
+                    btns.forEach(b => b.disabled = false);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                btns.forEach(b => b.disabled = false);
+            });
+        });
+    });
+});
+</script>
+
 <?php require __DIR__ . '/../layouts/footer.php'; ?>

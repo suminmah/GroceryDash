@@ -171,5 +171,89 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(err.message || 'Failed to update wishlist. Please try again.');
         });
     });
+
+    // ─────────────────────────────────────────────────────────
+    // GLOBAL AJAX HANDLER: ADD TO CART
+    // ─────────────────────────────────────────────────────────
+    document.body.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.getAttribute('action') && form.getAttribute('action').includes('/cart/add')) {
+            e.preventDefault();
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            let originalText = '';
+            
+            if (submitBtn) {
+                originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Adding...';
+            }
+            
+            fetch(form.getAttribute('action'), {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                // If backend redirects despite our headers (should not happen anymore)
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return; // Handled by redirect above
+                
+                if (data.success) {
+                    // Update global cart counter pills
+                    const cartCounters = document.querySelectorAll('.cart-count, .cart-counter, .cart-badge');
+                    cartCounters.forEach(counter => {
+                        counter.innerText = data.cart_count;
+                        counter.style.display = 'inline-block';
+                    });
+                    
+                    if (submitBtn) {
+                        submitBtn.innerHTML = 'Added! ✓';
+                        setTimeout(() => {
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                        }, 2000);
+                    }
+                } else {
+                    alert(data.message || 'Failed to add item to cart.');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Cart Add Error:', err);
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+    }); // Closes the submit listener
+
+    // ─────────────────────────────────────────────────────────
+    // GLOBAL SMOOTH PAGE TRANSITIONS
+    // ─────────────────────────────────────────────────────────
+    // Fade in when the page is fully parsed (hides unstyled flashes instantly)
+    document.body.classList.add('page-loaded');
+
+    // Safeguard for Safari/iOS Back-Forward Cache (bfcache)
+    // If the user clicks the browser 'Back' button, ensure the page is visible
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            document.body.classList.remove('page-exiting');
+            document.body.classList.add('page-loaded');
+        }
+    });
 });
 </script>

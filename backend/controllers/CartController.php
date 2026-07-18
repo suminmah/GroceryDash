@@ -27,10 +27,16 @@ class CartController {
     $productId = (int) ($_POST['product_id'] ?? 0);
     $quantity  = (int) ($_POST['quantity'] ?? 1);
     
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') 
+           || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+    
     if ($productId <= 0 || $quantity <= 0) {
+        if ($isAjax) {
+            $this->jsonResponse(['success' => false, 'message' => 'Invalid product or quantity.']);
+        }
         // Invalid request – redirect back with error
         $_SESSION['flash_error'] = 'Invalid product or quantity.';
-        header('Location: ' . $_SERVER['HTTP_REFERER'] ?? APP_URL . '/shop');
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? APP_URL . '/shop'));
         exit;
     }
 
@@ -39,8 +45,11 @@ class CartController {
     $product = $productModel->findById($productId);
     
     if (!$product) {
+        if ($isAjax) {
+            $this->jsonResponse(['success' => false, 'message' => 'Product not found.']);
+        }
         $_SESSION['flash_error'] = 'Product not found.';
-        header('Location: ' . $_SERVER['HTTP_REFERER'] ?? APP_URL . '/shop');
+        header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? APP_URL . '/shop'));
         exit;
     }
 
@@ -61,7 +70,23 @@ class CartController {
             'product_id' => $productId,
             'quantity'   => $newQty,
         ];
+        
+        if ($isAjax) {
+            $this->jsonResponse([
+                'success' => true,
+                'cart_count' => cartCount(),
+                'message' => 'Product added to cart.'
+            ]);
+        }
         $_SESSION['flash_success'] = 'Product added to cart.';
+    }
+    
+    if ($isAjax) {
+        $this->jsonResponse([
+            'success' => true,
+            'cart_count' => cartCount(),
+            'message' => 'Item removed from cart (out of stock).'
+        ]);
     }
     
     // Redirect back to previous page or cart page
@@ -103,9 +128,11 @@ class CartController {
         unset($_SESSION['cart'][$key]);
         $totals = cartTotals($this->buildCartItems());
         $this->jsonResponse([
-            'success'    => true,
-            'cart_count' => cartCount(),
-            'total'      => formatPrice($totals['total']),
+            'success'      => true,
+            'cart_count'   => cartCount(),
+            'subtotal'     => formatPrice($totals['subtotal']),
+            'delivery_fee' => formatPrice($totals['delivery_fee']),
+            'total'        => formatPrice($totals['total']),
         ]);
     }
 

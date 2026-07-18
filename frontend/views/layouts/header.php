@@ -115,6 +115,27 @@ $categories = $categories ?? (new Category())->getAll();
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
+    /* Smooth Page Transitions */
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #ffffff;
+        z-index: 999999;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.1s ease-out;
+    }
+    body.page-loaded::after {
+        opacity: 0;
+    }
+    body.page-exiting::after {
+        opacity: 1;
+    }
   </style>
 </head>
 <body>
