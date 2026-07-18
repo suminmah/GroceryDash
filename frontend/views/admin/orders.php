@@ -115,7 +115,7 @@ $isPendingFilterActive = ($currentFilter === 'pending');
                             <a href="<?= APP_URL ?>/admin/orders/<?= (int)($order['id'] ?? 0) ?>/edit" class="btn btn-sm btn-light border text-warning" title="Edit Status Controls">
                                 <i class="bi bi-pencil-fill"></i>
                             </a>
-                            <form action="<?= APP_URL ?>/admin/orders/cancel/<?= (int)($order['id'] ?? 0) ?>" method="POST" class="d-inline m-0" onsubmit="return confirm('Cancel this order record? This action is permanent.');">
+                            <form action="<?= APP_URL ?>/admin/orders/<?= (int)($order['id'] ?? 0) ?>/cancel" method="POST" class="d-inline m-0" onsubmit="return confirm('Cancel this order record? This action is permanent.');">
                                 <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                                 <button type="submit" class="btn btn-sm btn-light border text-danger" title="Cancel Order">
                                     <i class="bi bi-trash-fill"></i>
