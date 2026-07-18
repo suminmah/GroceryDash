@@ -105,6 +105,9 @@ if ($method === 'GET') {
     elseif ($uri === '/checkout/esewa/success')                       { (new CheckoutController())->esewaSuccess(); }
     elseif ($uri === '/checkout/esewa/failure')                       { (new CheckoutController())->esewaFailure(); }
     elseif ($uri === '/checkout/khalti/callback')                     { (new CheckoutController())->khaltiCallback(); }
+    elseif ($uri === '/checkout/fonepay/pay')                         { (new CheckoutController())->fonepayPay(); }
+    elseif ($uri === '/checkout/fonepay/check-status')                { (new CheckoutController())->fonepayCheckStatus(); }
+    elseif ($uri === '/checkout/fonepay/verify')                      { (new CheckoutController())->fonepayVerify(); }
     elseif (match_route($uri, '/order/confirmation/{id}', $params))   { (new CheckoutController())->confirmation((int) $params['id']); }
     elseif (match_route($uri, '/order/track/{id}', $params)) {
         require_once __DIR__ . '/../backend/controllers/OrderController.php';

@@ -29,7 +29,7 @@
     <div class="card shadow-sm border-0 rounded-4 p-4 mb-4" style="background:#fff; border-radius:12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); max-width:900px;">
         <h5 class="text-dark fw-bold mb-3" style="font-size: 1.1rem;">Create New Delivery Slot</h5>
         
-        <form method="POST" action="<?= APP_URL ?>/admin/slots">
+        <form method="POST" action="<?= APP_URL ?>/admin/slots/new">
             <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
             
             <div class="row g-3">
