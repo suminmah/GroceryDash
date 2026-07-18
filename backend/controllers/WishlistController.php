@@ -17,12 +17,16 @@ class WishlistController
      */
     public function index()
     {
-        requireLogin(); // Route guard forcing authentication redirection
+        $userId = (int)($_SESSION['user']['id'] ?? 0);
         
-        $userId = (int)$_SESSION['user']['id'];
-        $items  = $this->wishlist->getByUser($userId);
+        if ($userId > 0) {
+            $items = $this->wishlist->getByUser($userId);
+        } else {
+            $guestIds = $_SESSION['guest_wishlist'] ?? [];
+            $items = $this->wishlist->getByProductIds($guestIds);
+        }
+        
         $pageTitle = 'My Wishlist — GroceryDash';
-        
         require __DIR__ . '/../../frontend/views/pages/wishlist.php';
     }
 
@@ -35,18 +39,7 @@ class WishlistController
             header('Content-Type: application/json; charset=UTF-8');
         }
 
-        // 1. Guard Authentication State Check
-        if (!isLoggedIn()) {
-            http_response_code(401);
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Please sign in to save items to your wishlist.',
-                'redirect' => APP_URL . '/login'
-            ]);
-            exit;
-        }
-
-        // 2. Guard CSRF Interception Verification Layer
+        // 1. Guard CSRF Interception Verification Layer
         if (!verifyCsrf()) {
             http_response_code(419);
             echo json_encode([
@@ -56,11 +49,11 @@ class WishlistController
             exit;
         }
 
-        // 3. Extract Validated Sanitized Primitive Integer Input Parameters
+        // 2. Extract Validated Sanitized Primitive Integer Input Parameters
         $productId = (int)($_POST['product_id'] ?? 0);
         $userId    = (int)($_SESSION['user']['id'] ?? 0);
 
-        if ($productId <= 0 || $userId <= 0) {
+        if ($productId <= 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Malformed item or parameter identification request.']);
             exit;
@@ -68,12 +61,30 @@ class WishlistController
 
         try {
             // Check state to dictate dynamic add vs remove logic loop pathing
-            if ($this->wishlist->isWishlisted($userId, $productId)) {
-                $this->wishlist->remove($userId, $productId);
-                $isWishlisted = false;
+            if ($userId > 0) {
+                // Authenticated user DB logic
+                if ($this->wishlist->isWishlisted($userId, $productId)) {
+                    $this->wishlist->remove($userId, $productId);
+                    $isWishlisted = false;
+                } else {
+                    $this->wishlist->add($userId, $productId);
+                    $isWishlisted = true;
+                }
             } else {
-                $this->wishlist->add($userId, $productId);
-                $isWishlisted = true;
+                // Guest user session logic
+                if (!isset($_SESSION['guest_wishlist'])) {
+                    $_SESSION['guest_wishlist'] = [];
+                }
+                
+                $key = array_search($productId, $_SESSION['guest_wishlist']);
+                if ($key !== false) {
+                    unset($_SESSION['guest_wishlist'][$key]);
+                    $_SESSION['guest_wishlist'] = array_values($_SESSION['guest_wishlist']); // re-index
+                    $isWishlisted = false;
+                } else {
+                    $_SESSION['guest_wishlist'][] = $productId;
+                    $isWishlisted = true;
+                }
             }
 
             echo json_encode([

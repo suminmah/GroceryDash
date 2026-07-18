@@ -95,6 +95,9 @@ class AuthController {
             'is_active' => $user['is_active']
         ];
 
+        // Merge guest wishlist into permanent account
+        $this->syncGuestWishlist((int)$user['id']);
+
         // ── STEP 7: DEBUG — confirm session was written ──────
         // die('<pre style="background:#1a1a1a;color:#4ade80;padding:2rem;font-size:1rem">'
         //     . "✅ Session written:\n" . print_r($_SESSION['user'], true)
@@ -161,6 +164,10 @@ class AuthController {
             'email' => $email,
             'role'  => 'customer',
         ];
+        
+        // Merge guest wishlist into permanent account
+        $this->syncGuestWishlist((int)$id);
+        
         flash('success', 'Welcome to GroceryDash, ' . $name . '!');
         redirect(APP_URL . '/account/orders');
     }
@@ -188,5 +195,22 @@ class AuthController {
         // Redirect to home page (or login page)
         header('Location: ' . APP_URL);
         exit;
+    }
+
+    /**
+     * Syncs the session-based guest wishlist with the authenticated user's account
+     */
+    private function syncGuestWishlist(int $userId)
+    {
+        if (!empty($_SESSION['guest_wishlist'])) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            $wishlistModel = new WishlistModel();
+            
+            foreach ($_SESSION['guest_wishlist'] as $productId) {
+                $wishlistModel->add($userId, (int)$productId);
+            }
+            
+            unset($_SESSION['guest_wishlist']);
+        }
     }
 }

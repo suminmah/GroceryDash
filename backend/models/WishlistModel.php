@@ -39,6 +39,21 @@ class WishlistModel
     }
 
     /**
+     * Fetch product details for an array of product IDs (for guest sessions)
+     */
+    public function getByProductIds(array $productIds): array
+    {
+        if (empty($productIds)) return [];
+        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+        $sql = "SELECT p.id AS product_id, p.name, p.slug, p.price, p.sale_price, p.image, p.stock
+                FROM products p
+                WHERE p.id IN ($placeholders)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_values($productIds));
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Add product item to user's collection safely
      */
     public function add(int $userId, int $productId): bool

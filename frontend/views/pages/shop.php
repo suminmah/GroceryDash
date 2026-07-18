@@ -113,6 +113,7 @@ require __DIR__ . '/../layouts/header.php';
         </div>
       <?php else: ?>
         <div class="products-grid">
+          <?php $wishlistProductIds = $wishlistedIds ?? []; ?>
           <?php foreach ($products as $product): ?>
             <?php require __DIR__ . '/../../components/product-card.php'; ?>
           <?php endforeach; ?>

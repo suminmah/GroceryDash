@@ -45,6 +45,8 @@ class ShopController
             $wishlistModel = new WishlistModel();
                 
             $wishlistedIds = $wishlistModel->getWishlistedProductIds((int) $_SESSION['user']['id']);
+        } else {
+            $wishlistedIds = $_SESSION['guest_wishlist'] ?? [];
         }
         require __DIR__ . '/../../frontend/views/pages/home.php';
     }
@@ -91,6 +93,16 @@ class ShopController
         $page = (int)($_GET['page'] ?? 1);
         $products   = $this->products->getAll($filters, $page);
         $totalPages = $this->products->totalPages($filters);
+
+        // Fetch Wishlist State
+        $wishlistedIds = [];
+        if (isLoggedIn()) {
+            require_once __DIR__ . '/../models/WishlistModel.php';
+            $wishlistModel = new WishlistModel();
+            $wishlistedIds = $wishlistModel->getWishlistedProductIds((int) $_SESSION['user']['id']);
+        } else {
+            $wishlistedIds = $_SESSION['guest_wishlist'] ?? [];
+        }
 
         // 4. Load view with all variables
         require __DIR__ . '/../../frontend/views/pages/shop.php';
