@@ -102,8 +102,7 @@ if ($method === 'GET') {
     }
     elseif ($uri === '/offers')                                       { (new ShopController())->offers(); }
     elseif ($uri === '/checkout')                                     { (new CheckoutController())->form(); }
-    elseif ($uri === '/checkout/esewa/success')                       { (new CheckoutController())->esewaSuccess(); }
-    elseif ($uri === '/checkout/esewa/failure')                       { (new CheckoutController())->esewaFailure(); }
+
     elseif ($uri === '/checkout/khalti/callback')                     { (new CheckoutController())->khaltiCallback(); }
     elseif ($uri === '/checkout/fonepay/pay')                         { (new CheckoutController())->fonepayPay(); }
     elseif ($uri === '/checkout/fonepay/check-status')                { (new CheckoutController())->fonepayCheckStatus(); }

@@ -146,7 +146,7 @@ $orderItems = $order['items'] ?? [];
                           <?= match(strtolower($order['payment_method'] ?? '')) {
                               'cod' => '💵 Cash on Delivery (COD)',
                               'fonepay' => '<img src="' . APP_URL . '/assets/images/fonepay-logo.png" alt="Fonepay" style="height:20px;"> Fonepay QR',
-                              'esewa' => '<img src="' . APP_URL . '/assets/images/esewa-logo.webp" alt="eSewa" style="height:20px;"> eSewa Pay',
+
                               'khalti' => '<img src="' . APP_URL . '/assets/images/khalti-logo.png" alt="Khalti" style="height:20px;"> Khalti SDK',
                               'online' => '💳 Online Payment',
                               default => strtoupper($order['payment_method'] ?? 'COD')

@@ -31,7 +31,7 @@ require __DIR__ . '/../layouts/header.php';
       </details>
       <details>
         <summary>What payment methods do you accept?</summary>
-        <p>We accept Cash on Delivery (COD), credit/debit cards (Visa, Mastercard), eSewa, Khalti, Fonepay, and bank transfers.</p>
+        <p>We accept Cash on Delivery (COD), credit/debit cards (Visa, Mastercard), Khalti, Fonepay, and bank transfers.</p>
       </details>
       <details>
         <summary>Can I modify or cancel my order?</summary>

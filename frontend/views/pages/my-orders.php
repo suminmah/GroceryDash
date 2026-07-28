@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'My Orders — FreshCart';
+$pageTitle = 'My Orders — GroceryDash';
 require __DIR__ . '/../layouts/header.php';
 ?>
 

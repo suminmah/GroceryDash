@@ -34,7 +34,7 @@ $order = $order ?? [];
           <?= match(strtolower($order['payment_method'] ?? '')) {
               'cod' => 'Cash on Delivery',
               'fonepay' => '<img src="' . APP_URL . '/assets/images/fonepay-logo.png" alt="Fonepay" style="height:24px;">',
-              'esewa' => '<img src="' . APP_URL . '/assets/images/esewa-logo.webp" alt="eSewa" style="height:24px;">',
+
               'khalti' => '<img src="' . APP_URL . '/assets/images/khalti-logo.png" alt="Khalti" style="height:24px;">',
               'online' => 'Online Payment',
               default => strtoupper($order['payment_method'] ?? 'COD')
