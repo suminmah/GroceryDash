@@ -55,7 +55,7 @@ require __DIR__ . '/../layouts/header.php';
       <div class="premium-team-grid">
         <div class="premium-team-card">
           <img src="<?= APP_URL ?>/assets/images/team/Avatar1.png" alt="Founder" style="display: block; margin: 0 auto 1.5rem auto;">
-          <h3 style="margin-bottom: 0;">Sumin Shrestha</h3>
+          <h3 style="margin-bottom: 0;">Sumin Maharjan</h3>
         </div>
         <div class="premium-team-card">
           <img src="<?= APP_URL ?>/assets/images/team/Avatar2.png" alt="Co-Founder" style="display: block; margin: 0 auto 1.5rem auto;">
