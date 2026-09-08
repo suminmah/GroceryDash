@@ -33,6 +33,12 @@ if (!isset($_SESSION)) {
     session_start(); 
 }
 
+// Disable BFCache globally so the Back/Forward buttons force a re-validation against the server
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: -1');
+
 if (function_exists('csrfToken')) {
     csrfToken(); // Ensure CSRF token is generated for the session
 }

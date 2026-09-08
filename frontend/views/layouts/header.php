@@ -38,6 +38,20 @@ $categories = $categories ?? (new Category())->getAll();
   <title><?= e($pageTitle) ?></title>
   <meta name="description" content="Order fresh groceries online and get them delivered in 30 minutes. Best prices, widest selection.">
   
+  <!-- Aggressive Anti-Caching Meta Tags -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <!-- Aggressive JavaScript Cache Invalidation for Safari/Firefox -->
+  <script>
+      window.addEventListener('pageshow', function(event) {
+          var isBackForward = event.persisted || (window.performance && window.performance.navigation.type === 2);
+          if (isBackForward) {
+              window.location.reload();
+          }
+      });
+  </script>
   <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css?v=<?= time() ?>">
   <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/user-order.css?v=<?= time() ?>">
   <link rel="stylesheet" href="/grocery-shop/public/assets/css/admin.css?v=<?= time() ?>">

@@ -1,20 +1,33 @@
 <?php
 // frontend/views/admin/layout.php
-// This master layout controls fluid viewport sizing and encapsulates the main views safely
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Admin' ?> | GroceryDash Admin</title>
+    <title><?= e($pageTitle ?? 'Admin Dashboard') ?> — GroceryDash</title>
+
+    <!-- Aggressive Anti-Caching Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Aggressive JavaScript Cache Invalidation for Safari/Firefox -->
+    <script>
+        window.addEventListener('pageshow', function(event) {
+            var isBackForward = event.persisted || (window.performance && window.performance.navigation.type === 2);
+            if (isBackForward) {
+                window.location.reload();
+            }
+        });
+    </script>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/admin.css?v=<?= time() ?>">
 
     <style>
-        /* 🎨 Clean, Fluid Layout Style Reset overrides */
         html, body {
             height: 100%;
             width: 100%;
@@ -24,18 +37,16 @@
             background-color: #f8fafc;
         }
 
-        /* Fluid Master Grid Framework Container Wrapper */
         .admin-dashboard-layout {
             min-height: 100vh;
             width: 100%;
             display: flex;
-            align-items: stretch; /* Enforces sidebar and content heights to always stay aligned */
+            align-items: stretch; 
         }
 
-        /* 👑 High-Performance Sidebar Style Configuration */
         .admin-sidebar-panel {
-            width: 260px;          /* Clean fixed desktop width matrix rule */
-            flex-shrink: 0;        /* Prevents content layout from compressing navigation items */
+            width: 260px;          
+            flex-shrink: 0;        
             background-color: #ffffff !important;
             border-right: 1px solid #e2e8f0;
             display: flex;
@@ -47,19 +58,18 @@
             position: sticky;
             top: 0;
             height: 100vh;
-            overflow-y: auto;       /* Permits sidebar scroll vectors if nav lists expand */
+            overflow-y: auto;       
             padding: 1.5rem 1.25rem;
         }
 
-        /* 🖥️ Responsive Content Workspace Area Panel */
         .admin-main-workspace {
             flex-grow: 1;
-            min-width: 0;          /* Critical fix to prevent text data wrappers from breaking layout tables */
+            min-width: 0;         
             padding: 2.5rem !important;
             background-color: #f8fafc;
         }
 
-        /* Premium Link Interaction Feedback States */
+    
         .nav-pills .nav-link {
             border-radius: 8px;
             padding: 0.625rem 1rem;
@@ -167,5 +177,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Safeguard for Safari/iOS Back-Forward Cache (bfcache)
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+    </script>
 </body>
 </html>

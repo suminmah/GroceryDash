@@ -251,8 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // If the user clicks the browser 'Back' button, ensure the page is visible
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) {
-            document.body.classList.remove('page-exiting');
-            document.body.classList.add('page-loaded');
+            window.location.reload();
         }
     });
 });
